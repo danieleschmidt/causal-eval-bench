@@ -25,7 +25,21 @@
         "ms-azuretools.vscode-docker",
         "GitHub.vscode-github-actions",
         "ms-python.pytest",
-        "tamasfe.even-better-toml"
+        "tamasfe.even-better-toml",
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "ms-vscode.vscode-markdown",
+        "DavidAnson.vscode-markdownlint",
+        "ms-vscode.test-adapter-converter",
+        "ms-vscode.live-server",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-thunder-client",
+        "humao.rest-client",
+        "streetsidesoftware.code-spell-checker",
+        "ms-vscode.vscode-github-pullrequest",
+        "eamodio.gitlens",
+        "donjayamanne.githistory",
+        "ms-vscode-remote.remote-containers"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",
@@ -55,7 +69,7 @@
     }
   },
 
-  "forwardPorts": [8000, 5432, 6379],
+  "forwardPorts": [8000, 5432, 6379, 8080, 9090, 3000],
   "portsAttributes": {
     "8000": {
       "label": "FastAPI Server",
@@ -67,6 +81,18 @@
     },
     "6379": {
       "label": "Redis",
+      "onAutoForward": "silent"
+    },
+    "8080": {
+      "label": "Documentation",
+      "onAutoForward": "openPreview"
+    },
+    "9090": {
+      "label": "Prometheus",
+      "onAutoForward": "silent"
+    },
+    "3000": {
+      "label": "Grafana",
       "onAutoForward": "silent"
     }
   },

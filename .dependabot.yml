@@ -1,0 +1,129 @@
+# Dependabot configuration for automated dependency updates
+# See: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    reviewers:
+      - "your-username"
+    assignees:
+      - "your-username"
+    labels:
+      - "dependencies"
+      - "python"
+    milestone: "Next Release"
+    rebase-strategy: "auto"
+    allow:
+      # Allow both direct and indirect updates for all dependencies
+      - dependency-type: "all"
+    ignore:
+      # Ignore major version updates for stability
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      # Group development dependencies
+      dev-dependencies:
+        patterns:
+          - "pytest*"
+          - "black"
+          - "isort"
+          - "ruff"
+          - "mypy"
+          - "pre-commit"
+          - "bandit"
+          - "safety"
+        update-types:
+          - "minor"
+          - "patch"
+      # Group documentation dependencies
+      docs-dependencies:
+        patterns:
+          - "mkdocs*"
+          - "sphinx*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Group testing dependencies
+      test-dependencies:
+        patterns:
+          - "pytest*"
+          - "hypothesis"
+          - "factory-boy"
+          - "faker"
+          - "coverage"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(docker)"
+    reviewers:
+      - "your-username"
+    labels:
+      - "dependencies"
+      - "docker"
+    rebase-strategy: "auto"
+
+  # GitHub Actions (if any workflows exist)
+  - package-ecosystem: "github-actions"
+    directory: "/.github/workflows"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(actions)"
+    reviewers:
+      - "your-username"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    rebase-strategy: "auto"
+
+  # NPM dependencies (for documentation tools)
+  - package-ecosystem: "npm"
+    directory: "/docs"
+    schedule:
+      interval: "monthly"
+      day: "first-monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(docs-deps)"
+    reviewers:
+      - "your-username"
+    labels:
+      - "dependencies"
+      - "documentation"
+      - "npm"
+    rebase-strategy: "auto"
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    ignore:
+      # Ignore major version updates for Node.js tools
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

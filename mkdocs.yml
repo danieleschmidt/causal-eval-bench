@@ -1,0 +1,183 @@
+# MkDocs configuration for Causal Eval Bench documentation
+
+site_name: Causal Eval Bench
+site_description: Comprehensive evaluation framework for testing genuine causal reasoning in language models
+site_author: Daniel Schmidt
+site_url: https://docs.causal-eval-bench.org
+
+# Repository
+repo_name: your-org/causal-eval-bench
+repo_url: https://github.com/your-org/causal-eval-bench
+edit_uri: edit/main/docs/
+
+# Configuration
+theme:
+  name: material
+  custom_dir: docs/overrides
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - toc.follow
+    - content.code.annotate
+    - content.code.copy
+    - content.action.edit
+    - content.action.view
+  palette:
+    - scheme: default
+      primary: blue
+      accent: light blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: light blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  favicon: assets/favicon.ico
+  logo: assets/logo.png
+
+# Plugins
+plugins:
+  - search:
+      lang: en
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_if_no_docstring: true
+            inherited_members: true
+            members_order: alphabetical
+            separate_signature: true
+            filters: ["!^_"]
+  - mermaid2:
+      arguments:
+        theme: |
+          ^((?!dark).)*$
+  - git-revision-date-localized:
+      type: date
+  - minify:
+      minify_html: true
+
+# Extensions
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: your-org
+      repo: causal-eval-bench
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Navigation
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quickstart.md
+    - Configuration: getting-started/configuration.md
+  - User Guide:
+    - Evaluation Tasks: user-guide/evaluation-tasks.md
+    - Test Generation: user-guide/test-generation.md
+    - Running Evaluations: user-guide/running-evaluations.md
+    - Analysis Tools: user-guide/analysis-tools.md
+    - Leaderboard: user-guide/leaderboard.md
+  - API Reference:
+    - REST API: api/rest.md
+    - Python SDK: api/python-sdk.md
+    - CLI Commands: api/cli.md
+    - Data Models: api/models.md
+  - Development:
+    - Contributing: development/contributing.md
+    - Development Setup: development/setup.md
+    - Testing: development/testing.md
+    - Architecture: development/architecture.md
+  - Deployment:
+    - Docker: deployment/docker.md
+    - Kubernetes: deployment/kubernetes.md
+    - Production: deployment/production.md
+    - Monitoring: deployment/monitoring.md
+  - Examples:
+    - Basic Usage: examples/basic-usage.md
+    - Custom Tasks: examples/custom-tasks.md
+    - Batch Processing: examples/batch-processing.md
+    - Integration: examples/integration.md
+  - Research:
+    - Methodology: research/methodology.md
+    - Benchmarks: research/benchmarks.md
+    - Papers: research/papers.md
+    - Datasets: research/datasets.md
+  - About:
+    - Changelog: about/changelog.md
+    - License: about/license.md
+    - Support: about/support.md
+    - Roadmap: about/roadmap.md
+
+# Extra CSS and JS
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+# Extra configuration
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/your-org/causal-eval-bench
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/causal-eval-bench/
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/r/your-org/causal-eval-bench
+    - icon: fontawesome/solid/paper-plane
+      link: mailto:contact@causal-eval-bench.org
+
+# Copyright
+copyright: Copyright &copy; 2025 Daniel Schmidt

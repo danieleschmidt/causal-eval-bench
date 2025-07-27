@@ -1,0 +1,288 @@
+# Docker Compose configuration for Causal Eval Bench
+# Provides complete development and testing environment
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Main Application
+  # =============================================================================
+  app:
+    build:
+      context: .
+      target: development
+      dockerfile: Dockerfile
+    container_name: causal-eval-app
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://causal_eval_user:causal_eval_password@postgres:5432/causal_eval_bench
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=DEBUG
+      - API_RELOAD=true
+    volumes:
+      - .:/app
+      - /app/__pycache__
+      - /app/.pytest_cache
+      - /app/.mypy_cache
+      - /app/.ruff_cache
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - causal-eval-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # =============================================================================
+  # Database
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: causal-eval-postgres
+    environment:
+      POSTGRES_DB: causal_eval_bench
+      POSTGRES_USER: causal_eval_user
+      POSTGRES_PASSWORD: causal_eval_password
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - causal-eval-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U causal_eval_user -d causal_eval_bench"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # =============================================================================
+  # Cache
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: causal-eval-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/etc/redis/redis.conf:ro
+    command: redis-server /etc/redis/redis.conf
+    networks:
+      - causal-eval-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # =============================================================================
+  # Worker (for background tasks)
+  # =============================================================================
+  worker:
+    build:
+      context: .
+      target: development
+      dockerfile: Dockerfile
+    container_name: causal-eval-worker
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://causal_eval_user:causal_eval_password@postgres:5432/causal_eval_bench
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=INFO
+    volumes:
+      - .:/app
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - causal-eval-network
+    command: ["python", "-m", "causal_eval.worker.main"]
+    restart: unless-stopped
+
+  # =============================================================================
+  # Documentation Server
+  # =============================================================================
+  docs:
+    build:
+      context: .
+      target: development
+      dockerfile: Dockerfile
+    container_name: causal-eval-docs
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    networks:
+      - causal-eval-network
+    command: ["mkdocs", "serve", "--dev-addr", "0.0.0.0:8080"]
+    restart: unless-stopped
+
+  # =============================================================================
+  # Testing Service
+  # =============================================================================
+  test:
+    build:
+      context: .
+      target: testing
+      dockerfile: Dockerfile
+    container_name: causal-eval-test
+    environment:
+      - ENVIRONMENT=test
+      - DATABASE_URL=postgresql://causal_eval_user:causal_eval_password@postgres:5432/causal_eval_bench_test
+      - REDIS_URL=redis://redis:6379/1
+    volumes:
+      - .:/app
+      - test_results:/app/test_results
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - causal-eval-network
+    profiles:
+      - testing
+    command: ["python", "-m", "pytest", "tests/", "-v", "--cov=causal_eval", "--cov-report=html:/app/test_results/coverage"]
+
+  # =============================================================================
+  # Performance Testing
+  # =============================================================================
+  performance-test:
+    build:
+      context: .
+      target: development
+      dockerfile: Dockerfile
+    container_name: causal-eval-perf-test
+    environment:
+      - ENVIRONMENT=test
+      - TARGET_URL=http://app:8000
+    volumes:
+      - .:/app
+      - performance_results:/app/performance_results
+    depends_on:
+      - app
+    networks:
+      - causal-eval-network
+    profiles:
+      - performance
+    command: ["locust", "-f", "tests/performance/locustfile.py", "--host", "http://app:8000"]
+
+  # =============================================================================
+  # Monitoring and Observability
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: causal-eval-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - causal-eval-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    profiles:
+      - monitoring
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: causal-eval-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - causal-eval-network
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+    restart: unless-stopped
+
+  # =============================================================================
+  # Nginx Reverse Proxy (for production-like setup)
+  # =============================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: causal-eval-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    networks:
+      - causal-eval-network
+    profiles:
+      - production
+    restart: unless-stopped
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  causal-eval-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  test_results:
+    driver: local
+  performance_results:
+    driver: local
+
+# =============================================================================
+# Profiles Usage:
+# =============================================================================
+# Development (default):
+#   docker-compose up
+#
+# Testing:
+#   docker-compose --profile testing up test
+#
+# Performance Testing:
+#   docker-compose --profile performance up performance-test
+#
+# Monitoring:
+#   docker-compose --profile monitoring up prometheus grafana
+#
+# Production-like:
+#   docker-compose --profile production up
+#
+# All services:
+#   docker-compose --profile testing --profile performance --profile monitoring --profile production up

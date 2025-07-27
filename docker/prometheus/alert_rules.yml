@@ -1,0 +1,146 @@
+# Prometheus Alert Rules for Causal Eval Bench
+
+groups:
+  - name: causal_eval_bench.rules
+    rules:
+      # High-level service alerts
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 1 minute."
+
+      # API specific alerts
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} requests per second for the last 5 minutes."
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency"
+          description: "95th percentile latency is {{ $value }}s for the last 5 minutes."
+
+      - alert: LowThroughput
+        expr: rate(http_requests_total[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low API throughput"
+          description: "Request rate is {{ $value }} requests per second for the last 5 minutes."
+
+      # Evaluation specific alerts
+      - alert: HighEvaluationFailureRate
+        expr: rate(evaluation_failures_total[5m]) / rate(evaluation_requests_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High evaluation failure rate"
+          description: "Evaluation failure rate is {{ $value | humanizePercentage }} for the last 5 minutes."
+
+      - alert: LongEvaluationDuration
+        expr: histogram_quantile(0.95, rate(evaluation_duration_seconds_bucket[5m])) > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Long evaluation duration"
+          description: "95th percentile evaluation duration is {{ $value }}s for the last 5 minutes."
+
+      # Database alerts
+      - alert: DatabaseConnectionPoolExhausted
+        expr: db_connections_active / db_connections_max > 0.9
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "Database connection pool is {{ $value | humanizePercentage }} full."
+
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, rate(db_query_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow database queries"
+          description: "95th percentile database query duration is {{ $value }}s."
+
+      # Cache alerts
+      - alert: LowCacheHitRate
+        expr: cache_hits_total / (cache_hits_total + cache_misses_total) < 0.8
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} for the last 10 minutes."
+
+      - alert: HighCacheMemoryUsage
+        expr: cache_memory_usage_bytes / cache_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High cache memory usage"
+          description: "Cache memory usage is {{ $value | humanizePercentage }} of limit."
+
+      # System resource alerts
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% for the last 5 minutes."
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes / process_virtual_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }} of limit."
+
+      # Business logic alerts
+      - alert: LowTestGenerationRate
+        expr: rate(test_questions_generated_total[10m]) < 0.1
+        for: 15m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low test generation rate"
+          description: "Test generation rate is {{ $value }} questions per second."
+
+      - alert: ModelAPIRateLimitApproaching
+        expr: rate(model_api_rate_limit_errors_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Model API rate limit approaching"
+          description: "Receiving rate limit errors from model API."
+
+      - alert: UnusualEvaluationScoreDistribution
+        expr: abs(histogram_quantile(0.5, rate(evaluation_scores_bucket[1h])) - 0.5) > 0.3
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "Unusual evaluation score distribution"
+          description: "Median evaluation score is {{ $value }}, which deviates significantly from expected."

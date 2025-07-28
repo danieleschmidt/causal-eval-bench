@@ -1,0 +1,639 @@
+# Release Automation for Causal Eval Bench
+# Automated release creation and package publishing
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.2.3)'
+        required: true
+        type: string
+      release_type:
+        description: 'Type of release'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+        - release
+        - prerelease
+        - draft
+      publish_packages:
+        description: 'Publish packages to PyPI'
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: "3.11"
+  POETRY_VERSION: "1.7.1"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # =============================================================================
+  # VALIDATE RELEASE
+  # =============================================================================
+  validate-release:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is-prerelease: ${{ steps.version.outputs.is-prerelease }}
+      changelog: ${{ steps.changelog.outputs.changelog }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Determine version
+      id: version
+      run: |
+        if [[ "${{ github.event_name }}" == "push" ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        else
+          VERSION="${{ github.event.inputs.version }}"
+        fi
+        
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        
+        # Check if prerelease
+        if [[ "$VERSION" =~ -(alpha|beta|rc) ]] || [[ "${{ github.event.inputs.release_type }}" == "prerelease" ]]; then
+          echo "is-prerelease=true" >> $GITHUB_OUTPUT
+        else
+          echo "is-prerelease=false" >> $GITHUB_OUTPUT
+        fi
+        
+        echo "Releasing version: $VERSION"
+
+    - name: Validate version format
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+          echo "❌ Invalid version format: $VERSION"
+          echo "Expected format: X.Y.Z or X.Y.Z-suffix"
+          exit 1
+        fi
+        echo "✅ Version format is valid: $VERSION"
+
+    - name: Check if version exists
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+          echo "❌ Version v$VERSION already exists"
+          exit 1
+        fi
+        echo "✅ Version v$VERSION is new"
+
+    - name: Extract changelog
+      id: changelog
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        
+        # Extract changelog for this version from CHANGELOG.md
+        if [[ -f CHANGELOG.md ]]; then
+          # Find the section for this version
+          CHANGELOG=$(awk "/^## \[?v?${VERSION//./\\.}\]?/,/^## \[?v?[0-9]/ { if (/^## \[?v?[0-9]/ && !/^## \[?v?${VERSION//./\\.}\]?/) exit; print }" CHANGELOG.md | head -n -1)
+          
+          if [[ -n "$CHANGELOG" ]]; then
+            echo "Found changelog for version $VERSION"
+            # Save changelog to file and output
+            echo "$CHANGELOG" | tail -n +2 > changelog.md  # Skip the version header
+            echo "changelog<<EOF" >> $GITHUB_OUTPUT
+            cat changelog.md >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  No changelog found for version $VERSION"
+            echo "changelog=No changelog available for this version." >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "⚠️  CHANGELOG.md not found"
+          echo "changelog=No changelog available." >> $GITHUB_OUTPUT
+        fi
+
+    - name: Upload changelog artifact
+      uses: actions/upload-artifact@v3
+      if: steps.changelog.outputs.changelog != 'No changelog available for this version.' && steps.changelog.outputs.changelog != 'No changelog available.'
+      with:
+        name: changelog
+        path: changelog.md
+
+  # =============================================================================
+  # BUILD RELEASE ASSETS
+  # =============================================================================
+  build-python-package:
+    name: Build Python Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [validate-release]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Update version in pyproject.toml
+      run: |
+        VERSION="${{ needs.validate-release.outputs.version }}"
+        poetry version "$VERSION"
+        
+        # Verify version was set correctly
+        CURRENT_VERSION=$(poetry version --short)
+        if [[ "$CURRENT_VERSION" != "$VERSION" ]]; then
+          echo "❌ Version mismatch: expected $VERSION, got $CURRENT_VERSION"
+          exit 1
+        fi
+        echo "✅ Version set to $VERSION"
+
+    - name: Install dependencies
+      run: |
+        poetry install --with dev
+
+    - name: Run tests
+      run: |
+        poetry run pytest tests/ --tb=short
+
+    - name: Build package
+      run: |
+        poetry build
+        
+        # Verify build artifacts
+        ls -la dist/
+        
+        # Check package contents
+        python -m tarfile -l dist/*.tar.gz | head -20
+        
+        echo "✅ Package built successfully"
+
+    - name: Validate package
+      run: |
+        # Install and test the built package
+        pip install dist/*.whl
+        
+        # Basic import test
+        python -c "import causal_eval; print(f'Package version: {causal_eval.__version__}')"
+        
+        # Check console scripts
+        causal-eval --help
+        
+        echo "✅ Package validation completed"
+
+    - name: Upload Python package artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-package
+        path: dist/
+
+  # =============================================================================
+  # BUILD DOCKER IMAGES
+  # =============================================================================
+  build-docker-image:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [validate-release]
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-tag: ${{ steps.meta.outputs.tags }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=semver,pattern={{version}},value=v${{ needs.validate-release.outputs.version }}
+          type=semver,pattern={{major}}.{{minor}},value=v${{ needs.validate-release.outputs.version }}
+          type=semver,pattern={{major}},value=v${{ needs.validate-release.outputs.version }}
+          type=raw,value=latest,enable={{is_default_branch}}
+        labels: |
+          org.opencontainers.image.title=Causal Eval Bench
+          org.opencontainers.image.description=Comprehensive evaluation framework for causal reasoning in language models
+          org.opencontainers.image.version=${{ needs.validate-release.outputs.version }}
+
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        target: production
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          VERSION=${{ needs.validate-release.outputs.version }}
+          GIT_COMMIT=${{ github.sha }}
+        platforms: linux/amd64,linux/arm64
+
+    - name: Generate SBOM
+      uses: anchore/sbom-action@v0
+      with:
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.validate-release.outputs.version }}
+        format: spdx-json
+        output-file: sbom.spdx.json
+
+    - name: Run container security scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.validate-release.outputs.version }}
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Docker artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: docker-artifacts
+        path: |
+          sbom.spdx.json
+          trivy-results.sarif
+
+  # =============================================================================
+  # CREATE GITHUB RELEASE
+  # =============================================================================
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [validate-release, build-python-package, build-docker-image]
+    outputs:
+      release-id: ${{ steps.create-release.outputs.id }}
+      upload-url: ${{ steps.create-release.outputs.upload_url }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Create release notes
+      run: |
+        VERSION="${{ needs.validate-release.outputs.version }}"
+        
+        cat > release-notes.md << EOF
+        ## 🚀 Release v$VERSION
+        
+        ${{ needs.validate-release.outputs.changelog }}
+        
+        ## 📦 Installation
+        
+        ### Python Package
+        \`\`\`bash
+        pip install causal-eval-bench==$VERSION
+        \`\`\`
+        
+        ### Docker Image
+        \`\`\`bash
+        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION
+        \`\`\`
+        
+        ## 🔍 Verification
+        
+        **Python Package SHA256:**
+        \`\`\`
+        $(sha256sum python-package/*.whl | cut -d' ' -f1)
+        \`\`\`
+        
+        **Docker Image Digest:**
+        \`\`\`
+        ${{ needs.build-docker-image.outputs.image-digest }}
+        \`\`\`
+        
+        ## 📚 Documentation
+        
+        - [Installation Guide](https://docs.causal-eval-bench.com/installation/)
+        - [Quick Start](https://docs.causal-eval-bench.com/quickstart/)
+        - [API Documentation](https://docs.causal-eval-bench.com/api/)
+        - [Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+        
+        ## 🔗 Links
+        
+        - [PyPI Package](https://pypi.org/project/causal-eval-bench/$VERSION/)
+        - [Docker Hub](https://hub.docker.com/r/${{ github.repository }}/tags)
+        - [Documentation](https://docs.causal-eval-bench.com/)
+        
+        ---
+        
+        **Full Changelog**: https://github.com/${{ github.repository }}/compare/v$(git describe --tags --abbrev=0 HEAD^)...v$VERSION
+        EOF
+
+    - name: Create GitHub Release
+      id: create-release
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const releaseNotes = fs.readFileSync('release-notes.md', 'utf8');
+          
+          const { data: release } = await github.rest.repos.createRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            tag_name: 'v${{ needs.validate-release.outputs.version }}',
+            name: 'Release v${{ needs.validate-release.outputs.version }}',
+            body: releaseNotes,
+            draft: ${{ github.event.inputs.release_type == 'draft' }},
+            prerelease: ${{ needs.validate-release.outputs.is-prerelease }},
+            generate_release_notes: false
+          });
+          
+          return {
+            id: release.id,
+            upload_url: release.upload_url
+          };
+
+    - name: Upload Python package to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create-release.outputs.upload_url }}
+        asset_path: python-package/causal_eval_bench-${{ needs.validate-release.outputs.version }}-py3-none-any.whl
+        asset_name: causal_eval_bench-${{ needs.validate-release.outputs.version }}-py3-none-any.whl
+        asset_content_type: application/zip
+
+    - name: Upload source distribution to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create-release.outputs.upload_url }}
+        asset_path: python-package/causal-eval-bench-${{ needs.validate-release.outputs.version }}.tar.gz
+        asset_name: causal-eval-bench-${{ needs.validate-release.outputs.version }}.tar.gz
+        asset_content_type: application/gzip
+
+    - name: Upload SBOM to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create-release.outputs.upload_url }}
+        asset_path: docker-artifacts/sbom.spdx.json
+        asset_name: sbom-v${{ needs.validate-release.outputs.version }}.spdx.json
+        asset_content_type: application/json
+
+  # =============================================================================
+  # PUBLISH PACKAGES
+  # =============================================================================
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [validate-release, create-release]
+    if: github.event.inputs.publish_packages != 'false'
+    environment: pypi-release
+    
+    steps:
+    - name: Download Python package
+      uses: actions/download-artifact@v3
+      with:
+        name: python-package
+        path: dist/
+
+    - name: Publish to Test PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        repository-url: https://test.pypi.org/legacy/
+        skip-existing: true
+
+    - name: Test installation from Test PyPI
+      run: |
+        VERSION="${{ needs.validate-release.outputs.version }}"
+        
+        # Wait a bit for package to be available
+        sleep 30
+        
+        # Install from Test PyPI
+        pip install -i https://test.pypi.org/simple/ causal-eval-bench==$VERSION
+        
+        # Basic functionality test
+        python -c "import causal_eval; print(f'Installed version: {causal_eval.__version__}')"
+        
+        echo "✅ Test PyPI installation successful"
+
+    - name: Publish to Production PyPI
+      if: needs.validate-release.outputs.is-prerelease == 'false'
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
+
+    - name: Verify PyPI publication
+      if: needs.validate-release.outputs.is-prerelease == 'false'
+      run: |
+        VERSION="${{ needs.validate-release.outputs.version }}"
+        
+        # Wait for package to be available
+        sleep 60
+        
+        # Check if package is available
+        for i in {1..10}; do
+          if pip index versions causal-eval-bench | grep -q "$VERSION"; then
+            echo "✅ Package v$VERSION is available on PyPI"
+            break
+          fi
+          echo "⏳ Waiting for package to be available on PyPI ($i/10)..."
+          sleep 30
+        done
+        
+        # Install from PyPI
+        pip install causal-eval-bench==$VERSION
+        python -c "import causal_eval; print(f'PyPI version: {causal_eval.__version__}')"
+
+  # =============================================================================
+  # POST-RELEASE TASKS
+  # =============================================================================
+  post-release:
+    name: Post-Release Tasks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [validate-release, create-release, publish-pypi]
+    if: always() && needs.create-release.result == 'success'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update version badges
+      run: |
+        VERSION="${{ needs.validate-release.outputs.version }}"
+        
+        # Update README badges (if using shields.io)
+        if [[ -f README.md ]]; then
+          sed -i "s|https://img.shields.io/badge/version-.*-blue|https://img.shields.io/badge/version-$VERSION-blue|g" README.md
+          
+          if git diff --quiet README.md; then
+            echo "No badge updates needed"
+          else
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git add README.md
+            git commit -m "docs: update version badge to v$VERSION"
+            git push
+          fi
+        fi
+
+    - name: Create next development version
+      if: needs.validate-release.outputs.is-prerelease == 'false'
+      run: |
+        VERSION="${{ needs.validate-release.outputs.version }}"
+        
+        # Calculate next version
+        IFS='.' read -r major minor patch <<< "$VERSION"
+        NEXT_VERSION="$major.$((minor + 1)).0-dev"
+        
+        echo "Setting development version to $NEXT_VERSION"
+        
+        # Update pyproject.toml
+        sed -i "s/version = \"$VERSION\"/version = \"$NEXT_VERSION\"/" pyproject.toml
+        
+        # Commit development version
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add pyproject.toml
+        git commit -m "chore: bump version to $NEXT_VERSION for development"
+        git push
+
+    - name: Update documentation
+      run: |
+        # Trigger documentation update (if using external docs hosting)
+        curl -X POST \
+          -H "Authorization: token ${{ secrets.DOCS_DEPLOY_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/dispatches \
+          -d '{"event_type": "docs-update", "client_payload": {"version": "${{ needs.validate-release.outputs.version }}"}}'
+
+  # =============================================================================
+  # NOTIFICATIONS
+  # =============================================================================
+  notify-release:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [validate-release, create-release, publish-pypi, post-release]
+    if: always()
+    
+    steps:
+    - name: Determine notification status
+      id: status
+      run: |
+        if [[ "${{ needs.create-release.result }}" == "success" && "${{ needs.publish-pypi.result }}" == "success" ]]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "message=Release v${{ needs.validate-release.outputs.version }} published successfully" >> $GITHUB_OUTPUT
+        elif [[ "${{ needs.create-release.result }}" == "success" ]]; then
+          echo "status=partial" >> $GITHUB_OUTPUT
+          echo "message=Release v${{ needs.validate-release.outputs.version }} created, package publishing may have failed" >> $GITHUB_OUTPUT
+        else
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "message=Release v${{ needs.validate-release.outputs.version }} failed" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Notify Slack
+      uses: 8398a7/action-slack@v3
+      if: env.SLACK_WEBHOOK_URL != null
+      with:
+        status: custom
+        custom_payload: |
+          {
+            channel: '#releases',
+            username: 'Release Bot',
+            icon_emoji: ':rocket:',
+            attachments: [{
+              color: '${{ steps.status.outputs.status }}' === 'success' ? 'good' : '${{ steps.status.outputs.status }}' === 'partial' ? 'warning' : 'danger',
+              title: 'New Release: v${{ needs.validate-release.outputs.version }}',
+              fields: [{
+                title: 'Repository',
+                value: '${{ github.repository }}',
+                short: true
+              }, {
+                title: 'Version',
+                value: 'v${{ needs.validate-release.outputs.version }}',
+                short: true
+              }, {
+                title: 'Type',
+                value: '${{ needs.validate-release.outputs.is-prerelease }}' === 'true' ? 'Pre-release' : 'Release',
+                short: true
+              }, {
+                title: 'Status',
+                value: '${{ steps.status.outputs.message }}',
+                short: false
+              }],
+              actions: [{
+                type: 'button',
+                text: 'View Release',
+                url: 'https://github.com/${{ github.repository }}/releases/tag/v${{ needs.validate-release.outputs.version }}'
+              }, {
+                type: 'button',
+                text: 'PyPI Package',
+                url: 'https://pypi.org/project/causal-eval-bench/${{ needs.validate-release.outputs.version }}/'
+              }]
+            }]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: Send email notification
+      if: steps.status.outputs.status == 'success'
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 587
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "🚀 New Release: Causal Eval Bench v${{ needs.validate-release.outputs.version }}"
+        to: ${{ secrets.RELEASE_EMAIL_LIST }}
+        from: "Release Bot <releases@causal-eval-bench.com>"
+        body: |
+          A new release of Causal Eval Bench is now available!
+          
+          Version: v${{ needs.validate-release.outputs.version }}
+          Type: ${{ needs.validate-release.outputs.is-prerelease == 'true' && 'Pre-release' || 'Release' }}
+          Released: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          
+          Installation:
+          pip install causal-eval-bench==${{ needs.validate-release.outputs.version }}
+          
+          Docker:
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.validate-release.outputs.version }}
+          
+          Release Notes: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.validate-release.outputs.version }}
+          PyPI Package: https://pypi.org/project/causal-eval-bench/${{ needs.validate-release.outputs.version }}/
+          
+          Happy evaluating!
+          The Causal Eval Bench Team

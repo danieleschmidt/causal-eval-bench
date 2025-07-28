@@ -1,0 +1,566 @@
+# Continuous Deployment Pipeline for Causal Eval Bench
+# Automated deployment to staging and production environments
+
+name: CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      version:
+        description: 'Version to deploy (leave empty for latest)'
+        required: false
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PYTHON_VERSION: "3.11"
+  POETRY_VERSION: "1.7.1"
+
+jobs:
+  # =============================================================================
+  # BUILD AND PUBLISH
+  # =============================================================================
+  build:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+      version: ${{ steps.version.outputs.version }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Generate version
+      id: version
+      run: |
+        if [[ "${{ github.event.inputs.version }}" != "" ]]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION=$(date +%Y%m%d)-$(git rev-parse --short HEAD)
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Generated version: $VERSION"
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=raw,value=latest,enable={{is_default_branch}}
+          type=raw,value=${{ steps.version.outputs.version }}
+        labels: |
+          org.opencontainers.image.title=Causal Eval Bench
+          org.opencontainers.image.description=Comprehensive evaluation framework for causal reasoning in language models
+          org.opencontainers.image.version=${{ steps.version.outputs.version }}
+
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        target: production
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          GIT_COMMIT=${{ github.sha }}
+          VERSION=${{ steps.version.outputs.version }}
+        platforms: linux/amd64,linux/arm64
+
+    - name: Generate SBOM
+      uses: anchore/sbom-action@v0
+      with:
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+        format: spdx-json
+        output-file: sbom.spdx.json
+
+    - name: Upload SBOM
+      uses: actions/upload-artifact@v3
+      with:
+        name: sbom
+        path: sbom.spdx.json
+
+    - name: Run container security scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload security scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  # =============================================================================
+  # STAGING DEPLOYMENT
+  # =============================================================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [build]
+    environment: staging
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to staging
+      run: |
+        echo "🚀 Deploying ${{ needs.build.outputs.version }} to staging..."
+        
+        # Example deployment commands (replace with your deployment method)
+        # kubectl set image deployment/causal-eval-app app=${{ needs.build.outputs.image-tag }}
+        # helm upgrade causal-eval ./helm-chart --set image.tag=${{ needs.build.outputs.version }}
+        # aws ecs update-service --cluster staging --service causal-eval --force-new-deployment
+        
+        echo "✅ Deployment to staging completed"
+
+    - name: Wait for deployment
+      run: |
+        echo "⏳ Waiting for deployment to be ready..."
+        sleep 30
+        
+        # Health check (replace with your staging URL)
+        for i in {1..10}; do
+          if curl -f https://staging.causal-eval-bench.com/health; then
+            echo "✅ Staging deployment is healthy"
+            break
+          fi
+          echo "⏳ Waiting for health check... ($i/10)"
+          sleep 10
+        done
+
+    - name: Run smoke tests
+      run: |
+        echo "🧪 Running smoke tests against staging..."
+        
+        # Example smoke tests
+        curl -f https://staging.causal-eval-bench.com/health
+        curl -f https://staging.causal-eval-bench.com/api/v1/health
+        
+        echo "✅ Smoke tests passed"
+
+    - name: Update deployment status
+      uses: actions/github-script@v6
+      with:
+        script: |
+          await github.rest.repos.createDeploymentStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            deployment_id: context.payload.deployment?.id || 'staging',
+            state: 'success',
+            environment: 'staging',
+            description: 'Deployed to staging successfully'
+          });
+
+  # =============================================================================
+  # STAGING INTEGRATION TESTS
+  # =============================================================================
+  staging-tests:
+    name: Staging Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [build, deploy-staging]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies
+      run: |
+        poetry install --with test
+
+    - name: Run integration tests against staging
+      env:
+        API_BASE_URL: https://staging.causal-eval-bench.com
+        OPENAI_API_KEY: ${{ secrets.STAGING_OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.STAGING_ANTHROPIC_API_KEY }}
+      run: |
+        poetry run pytest tests/integration/ -v \
+          --base-url=${{ env.API_BASE_URL }} \
+          --junitxml=staging-integration-results.xml
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: staging-integration-results
+        path: staging-integration-results.xml
+
+  # =============================================================================
+  # PRODUCTION DEPLOYMENT
+  # =============================================================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [build, deploy-staging, staging-tests]
+    environment: production
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'production'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Pre-deployment checks
+      run: |
+        echo "🔍 Running pre-deployment checks..."
+        
+        # Verify image exists
+        docker manifest inspect ${{ needs.build.outputs.image-tag }}
+        
+        # Check staging health
+        curl -f https://staging.causal-eval-bench.com/health
+        
+        echo "✅ Pre-deployment checks passed"
+
+    - name: Create deployment record
+      id: deployment
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const deployment = await github.rest.repos.createDeployment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: context.sha,
+            environment: 'production',
+            description: 'Deploy version ${{ needs.build.outputs.version }} to production',
+            auto_merge: false,
+            required_contexts: []
+          });
+          return deployment.data.id;
+
+    - name: Blue-Green Deployment
+      id: deploy
+      run: |
+        echo "🚀 Starting blue-green deployment to production..."
+        
+        # Example blue-green deployment (replace with your method)
+        # This should:
+        # 1. Deploy to green environment
+        # 2. Run health checks
+        # 3. Switch traffic to green
+        # 4. Keep blue as backup
+        
+        echo "📊 Deploying to green environment..."
+        # kubectl apply -f k8s/production/green/
+        # helm upgrade causal-eval-green ./helm-chart --set image.tag=${{ needs.build.outputs.version }}
+        
+        echo "⏳ Waiting for green deployment to be ready..."
+        sleep 60
+        
+        echo "🏥 Running health checks on green environment..."
+        for i in {1..15}; do
+          if curl -f https://green.causal-eval-bench.com/health; then
+            echo "✅ Green environment is healthy"
+            break
+          fi
+          echo "⏳ Waiting for health check... ($i/15)"
+          sleep 10
+        done
+        
+        echo "🔄 Switching traffic to green environment..."
+        # kubectl patch service causal-eval-service -p '{"spec":{"selector":{"version":"green"}}}'
+        # aws elbv2 modify-target-group --target-group-arn $GREEN_TG_ARN
+        
+        echo "✅ Production deployment completed"
+
+    - name: Post-deployment verification
+      run: |
+        echo "🔍 Running post-deployment verification..."
+        
+        # Verify production health
+        for i in {1..10}; do
+          if curl -f https://api.causal-eval-bench.com/health; then
+            echo "✅ Production is healthy"
+            break
+          fi
+          echo "⏳ Verifying production health... ($i/10)"
+          sleep 15
+        done
+        
+        # Verify key endpoints
+        curl -f https://api.causal-eval-bench.com/api/v1/health
+        curl -f https://api.causal-eval-bench.com/metrics
+        
+        echo "✅ Post-deployment verification passed"
+
+    - name: Update deployment status (success)
+      if: success()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          await github.rest.repos.createDeploymentStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            deployment_id: '${{ steps.deployment.outputs.result }}',
+            state: 'success',
+            environment: 'production',
+            description: 'Deployed to production successfully',
+            environment_url: 'https://api.causal-eval-bench.com'
+          });
+
+    - name: Update deployment status (failure)
+      if: failure()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          await github.rest.repos.createDeploymentStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            deployment_id: '${{ steps.deployment.outputs.result }}',
+            state: 'failure',
+            environment: 'production',
+            description: 'Production deployment failed'
+          });
+
+  # =============================================================================
+  # PRODUCTION MONITORING
+  # =============================================================================
+  production-monitoring:
+    name: Production Monitoring
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [deploy-production]
+    if: success()
+    
+    steps:
+    - name: Monitor deployment
+      run: |
+        echo "📊 Monitoring production deployment..."
+        
+        # Monitor key metrics for 10 minutes
+        for i in {1..20}; do
+          echo "🔍 Checking metrics... ($i/20)"
+          
+          # Check error rate
+          # ERROR_RATE=$(curl -s "https://prometheus.causal-eval-bench.com/api/v1/query?query=rate(http_requests_total{status=~\"5..\"}[5m])" | jq -r '.data.result[0].value[1]')
+          
+          # Check response time
+          # RESPONSE_TIME=$(curl -s "https://prometheus.causal-eval-bench.com/api/v1/query?query=histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))" | jq -r '.data.result[0].value[1]')
+          
+          # For now, just check health
+          curl -f https://api.causal-eval-bench.com/health
+          
+          sleep 30
+        done
+        
+        echo "✅ Monitoring completed - deployment is stable"
+
+    - name: Create release
+      if: github.ref == 'refs/heads/main'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          await github.rest.repos.createRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            tag_name: 'v${{ needs.build.outputs.version }}',
+            name: 'Release v${{ needs.build.outputs.version }}',
+            body: `
+              ## 🚀 Production Deployment
+              
+              **Version:** ${{ needs.build.outputs.version }}
+              **Commit:** ${{ github.sha }}
+              **Deployed:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
+              
+              ### 📦 Container Image
+              \`${{ needs.build.outputs.image-tag }}\`
+              
+              ### 🔍 Verification
+              - [x] Staging tests passed
+              - [x] Production health checks passed
+              - [x] Post-deployment monitoring completed
+              
+              ### 🔗 Links
+              - [Production API](https://api.causal-eval-bench.com)
+              - [Monitoring Dashboard](https://grafana.causal-eval-bench.com)
+              - [Documentation](https://docs.causal-eval-bench.com)
+            `,
+            draft: false,
+            prerelease: false
+          });
+
+  # =============================================================================
+  # ROLLBACK CAPABILITY
+  # =============================================================================
+  rollback:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [deploy-production]
+    if: failure() && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Rollback production deployment
+      run: |
+        echo "🔄 Rolling back production deployment..."
+        
+        # Rollback commands (replace with your method)
+        # kubectl rollout undo deployment/causal-eval-app
+        # helm rollback causal-eval
+        # aws ecs update-service --cluster production --service causal-eval --task-definition previous-task-def
+        
+        echo "⏳ Waiting for rollback to complete..."
+        sleep 30
+        
+        echo "🏥 Verifying rollback health..."
+        for i in {1..10}; do
+          if curl -f https://api.causal-eval-bench.com/health; then
+            echo "✅ Rollback successful - production is healthy"
+            break
+          fi
+          echo "⏳ Verifying rollback... ($i/10)"
+          sleep 10
+        done
+
+    - name: Notify rollback
+      uses: actions/github-script@v6
+      with:
+        script: |
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.payload.pull_request?.number || 1,
+            body: `
+              ## 🚨 Production Rollback Executed
+              
+              **Reason:** Deployment failure detected
+              **Commit:** ${{ github.sha }}
+              **Time:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
+              
+              The production deployment has been automatically rolled back due to deployment failure.
+              Please investigate the issues before attempting another deployment.
+            `
+          });
+
+  # =============================================================================
+  # NOTIFICATIONS
+  # =============================================================================
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [build, deploy-staging, deploy-production, production-monitoring]
+    if: always()
+    
+    steps:
+    - name: Determine overall status
+      id: status
+      run: |
+        if [[ "${{ needs.deploy-production.result }}" == "success" && "${{ needs.production-monitoring.result }}" == "success" ]]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "message=Production deployment successful" >> $GITHUB_OUTPUT
+        elif [[ "${{ needs.deploy-staging.result }}" == "success" ]]; then
+          echo "status=partial" >> $GITHUB_OUTPUT
+          echo "message=Staging deployment successful, production pending" >> $GITHUB_OUTPUT
+        else
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "message=Deployment failed" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Notify Slack
+      uses: 8398a7/action-slack@v3
+      if: env.SLACK_WEBHOOK_URL != null
+      with:
+        status: custom
+        custom_payload: |
+          {
+            channel: '#deployments',
+            username: 'GitHub Actions',
+            icon_emoji: ':rocket:',
+            attachments: [{
+              color: '${{ steps.status.outputs.status }}' === 'success' ? 'good' : '${{ steps.status.outputs.status }}' === 'partial' ? 'warning' : 'danger',
+              title: 'Deployment Status',
+              fields: [{
+                title: 'Repository',
+                value: '${{ github.repository }}',
+                short: true
+              }, {
+                title: 'Version',
+                value: '${{ needs.build.outputs.version }}',
+                short: true
+              }, {
+                title: 'Environment',
+                value: '${{ steps.status.outputs.status }}' === 'success' ? 'Production' : 'Staging',
+                short: true
+              }, {
+                title: 'Status',
+                value: '${{ steps.status.outputs.message }}',
+                short: true
+              }],
+              actions: [{
+                type: 'button',
+                text: 'View Deployment',
+                url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+              }]
+            }]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: Send email notification
+      if: needs.deploy-production.result == 'success'
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 587
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "✅ Production Deployment Successful - v${{ needs.build.outputs.version }}"
+        to: ${{ secrets.DEPLOYMENT_EMAIL_LIST }}
+        from: "CI/CD Pipeline <noreply@causal-eval-bench.com>"
+        body: |
+          Production deployment completed successfully!
+          
+          Version: ${{ needs.build.outputs.version }}
+          Commit: ${{ github.sha }}
+          Deployed at: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          
+          Production URL: https://api.causal-eval-bench.com
+          Monitoring: https://grafana.causal-eval-bench.com
+          
+          View deployment: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}

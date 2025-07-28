@@ -265,6 +265,8 @@ mlruns/
 
 # IDE specific (uncommented for project use)
 .vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
 .idea/
 
 # OS specific

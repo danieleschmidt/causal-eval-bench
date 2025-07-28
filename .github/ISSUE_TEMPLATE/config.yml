@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Community Support
+    url: https://github.com/your-org/causal-eval-bench/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 💡 Feature Requests  
+    url: https://github.com/your-org/causal-eval-bench/discussions/categories/ideas
+    about: Share and discuss new feature ideas
+  - name: 📚 Documentation
+    url: https://docs.causal-eval-bench.org
+    about: Check the documentation for usage guides and API reference
+  - name: 🚀 Professional Support
+    url: mailto:support@terragon-labs.com
+    about: Contact Terragon Labs for enterprise support and consulting

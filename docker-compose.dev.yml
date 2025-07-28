@@ -1,0 +1,219 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: causal-eval-dev
+    volumes:
+      - .:/workspace:cached
+      - poetry-cache:/home/vscode/.cache/pypoetry
+      - pip-cache:/home/vscode/.cache/pip
+      - pre-commit-cache:/home/vscode/.cache/pre-commit
+      - mypy-cache:/home/vscode/.cache/mypy
+    working_dir: /workspace
+    environment:
+      - ENVIRONMENT=development
+      - PYTHONPATH=/workspace
+      - POETRY_VENV_IN_PROJECT=true
+      - DATABASE_URL=postgresql://causal_eval_user:causal_eval_password@postgres:5432/causal_eval_bench_dev
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=DEBUG
+    ports:
+      - "8000:8000"  # FastAPI
+      - "8080:8080"  # Documentation
+      - "9090:9090"  # Prometheus metrics
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - causal-eval-network
+    command: >
+      bash -c "
+        poetry install --with dev,test,docs &&
+        pre-commit install &&
+        poetry run uvicorn causal_eval.api.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: causal-eval-postgres-dev
+    environment:
+      POSTGRES_DB: causal_eval_bench_dev
+      POSTGRES_USER: causal_eval_user
+      POSTGRES_PASSWORD: causal_eval_password
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    volumes:
+      - postgres-data-dev:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U causal_eval_user -d causal_eval_bench_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - causal-eval-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: causal-eval-redis-dev
+    command: redis-server --appendonly yes --replica-read-only no
+    volumes:
+      - redis-data-dev:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - causal-eval-network
+
+  docs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: causal-eval-docs-dev
+    volumes:
+      - .:/workspace:cached
+    working_dir: /workspace
+    environment:
+      - ENVIRONMENT=development
+    ports:
+      - "8080:8080"
+    command: >
+      bash -c "
+        poetry install --with docs &&
+        poetry run mkdocs serve --dev-addr=0.0.0.0:8080
+      "
+    networks:
+      - causal-eval-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: causal-eval-prometheus-dev
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - prometheus-data-dev:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    ports:
+      - "9090:9090"
+    networks:
+      - causal-eval-network
+    depends_on:
+      - app
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: causal-eval-grafana-dev
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana-data-dev:/var/lib/grafana
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3000:3000"
+    networks:
+      - causal-eval-network
+    depends_on:
+      - prometheus
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: causal-eval-mailhog-dev
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    networks:
+      - causal-eval-network
+
+  # Development utilities
+  adminer:
+    image: adminer:latest
+    container_name: causal-eval-adminer-dev
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "8081:8080"
+    networks:
+      - causal-eval-network
+    depends_on:
+      - postgres
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: causal-eval-redis-commander-dev
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8082:8081"
+    networks:
+      - causal-eval-network
+    depends_on:
+      - redis
+
+  # Test runner service
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: causal-eval-test-runner
+    volumes:
+      - .:/workspace:cached
+      - test-results:/workspace/test-results
+    working_dir: /workspace
+    environment:
+      - ENVIRONMENT=testing
+      - PYTHONPATH=/workspace
+      - DATABASE_URL=postgresql://causal_eval_user:causal_eval_password@postgres:5432/causal_eval_bench_test
+      - REDIS_URL=redis://redis:6379/1
+    networks:
+      - causal-eval-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - testing
+    command: >
+      bash -c "
+        poetry install --with dev,test &&
+        poetry run pytest tests/ --cov=causal_eval --cov-report=html --cov-report=xml --junitxml=test-results/junit.xml
+      "
+
+volumes:
+  postgres-data-dev:
+  redis-data-dev:
+  grafana-data-dev:
+  prometheus-data-dev:
+  poetry-cache:
+  pip-cache:
+  pre-commit-cache:
+  mypy-cache:
+  test-results:
+
+networks:
+  causal-eval-network:
+    driver: bridge
+    name: causal-eval-dev-network

@@ -1,0 +1,47 @@
+# CODEOWNERS file for Causal Eval Bench
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global owners - these users will be requested for review on all PRs
+* @danieleschmidt @terragon-labs/maintainers
+
+# Core package
+/causal_eval/ @danieleschmidt @terragon-labs/core-team
+
+# API and web interface
+/causal_eval/api/ @danieleschmidt @terragon-labs/backend-team
+/causal_eval/cli/ @danieleschmidt @terragon-labs/core-team
+
+# Evaluation tasks and generation
+/causal_eval/tasks/ @danieleschmidt @terragon-labs/research-team
+/causal_eval/generation/ @danieleschmidt @terragon-labs/research-team
+/causal_eval/analysis/ @danieleschmidt @terragon-labs/research-team
+
+# Documentation
+/docs/ @danieleschmidt @terragon-labs/docs-team
+README.md @danieleschmidt @terragon-labs/docs-team
+CONTRIBUTING.md @danieleschmidt @terragon-labs/docs-team
+
+# Infrastructure and DevOps
+/.github/ @danieleschmidt @terragon-labs/devops-team
+/docker/ @danieleschmidt @terragon-labs/devops-team
+/scripts/ @danieleschmidt @terragon-labs/devops-team
+Dockerfile @danieleschmidt @terragon-labs/devops-team
+docker-compose*.yml @danieleschmidt @terragon-labs/devops-team
+
+# Configuration files
+pyproject.toml @danieleschmidt @terragon-labs/maintainers
+poetry.lock @danieleschmidt @terragon-labs/maintainers
+.pre-commit-config.yaml @danieleschmidt @terragon-labs/maintainers
+
+# Testing
+/tests/ @danieleschmidt @terragon-labs/qa-team
+
+# Security and compliance
+SECURITY.md @danieleschmidt @terragon-labs/security-team
+/.github/workflows/security.yml @danieleschmidt @terragon-labs/security-team
+
+# Release management
+/.github/workflows/release.yml @danieleschmidt @terragon-labs/release-team
+/.github/workflows/cd.yml @danieleschmidt @terragon-labs/release-team
+.releaserc.json @danieleschmidt @terragon-labs/release-team
+CHANGELOG.md @danieleschmidt @terragon-labs/release-team

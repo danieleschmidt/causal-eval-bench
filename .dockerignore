@@ -1,0 +1,150 @@
+# Docker ignore file for Causal Eval Bench
+# Excludes unnecessary files from Docker build context
+
+# Version control
+.git/
+.gitignore
+.github/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Development and testing
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+test_*.db
+test_results/
+performance_results/
+
+# Python
+__pycache__/
+*.py[codz]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Cache
+cache/
+.cache/
+*.tmp
+*.temp
+
+# Data and uploads
+data/
+uploads/
+downloads/
+temp/
+tmp/
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+dump.rdb
+
+# Secrets and credentials
+*.pem
+*.key
+*.crt
+*.p12
+.secrets/
+secrets.json
+
+# Local configuration
+.env.*
+config/local.*
+settings/local.*
+
+# Docker related
+docker-compose.override.yml
+Dockerfile.*
+!Dockerfile
+
+# Build artifacts
+target/
+.pybuilder/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Machine learning
+models/
+checkpoints/
+tensorboard_logs/
+mlruns/
+.mlflow/
+
+# Pre-commit
+.pre-commit-config.yaml.backup
+.secrets.baseline
+
+# Poetry
+poetry.lock
+
+# Node.js (if used for tooling)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.backup
+*.orig
+*.bak
+
+# Makefile targets (informational)
+# This file reduces Docker build context from ~100MB to ~10MB

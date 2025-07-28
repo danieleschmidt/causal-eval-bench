@@ -1,5 +1,6 @@
 # Pre-commit hooks configuration
 # See https://pre-commit.com for more information
+# Automated code quality checks before commits
 
 repos:
   # General hooks

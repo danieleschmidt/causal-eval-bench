@@ -208,6 +208,7 @@ __marimo__/
 
 # ============================================================================
 # PROJECT SPECIFIC (Causal Eval Bench)
+# Application-specific files and directories to ignore
 # ============================================================================
 
 # Application data

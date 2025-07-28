@@ -503,6 +503,23 @@ For new workflow requirements:
 4. **Documentation**: Add to this guide
 5. **Monitoring**: Add appropriate monitoring
 
+## Quick Reference
+
+### Essential Commands
+```bash
+# Setup workflows
+mkdir -p .github/workflows
+cp docs/workflows/examples/*.yml .github/workflows/
+
+# Local testing
+act -j ci
+```
+
+### Key Links
+- [Setup Guide](../SETUP_REQUIRED.md) - Manual setup requirements
+- [Examples](examples/) - Workflow templates
+- [GitHub Actions Docs](https://docs.github.com/en/actions)
+
 ---
 
 **Manual Setup Required**: Repository maintainers must create workflow files from the templates in `docs/workflows/examples/` and configure the required secrets and environments as documented above.

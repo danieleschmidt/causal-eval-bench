@@ -1,0 +1,146 @@
+# Codecov configuration for test coverage reporting
+# See: https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  # Coverage precision (0-5 decimal places)
+  precision: 2
+  
+  # Coverage range for color coding
+  range: "70..90"
+  
+  # Round coverage to nearest integer
+  round: down
+  
+  # Require CI to pass before posting coverage
+  require_ci_to_pass: true
+
+  # Status configuration
+  status:
+    # Project coverage status
+    project:
+      default:
+        # Target coverage percentage
+        target: 80%
+        # Acceptable drop in coverage
+        threshold: 2%
+        # Base branch for comparison
+        base: auto
+        # Fail if coverage drops
+        if_ci_failed: error
+        # Ignore coverage drops
+        only_pulls: false
+        
+    # Patch coverage (for PRs)
+    patch:
+      default:
+        # Target coverage for new code
+        target: 85%
+        # Base for patch comparison
+        base: auto
+        # Threshold for patch coverage
+        threshold: 5%
+        # Fail if patch coverage is low
+        if_ci_failed: error
+
+  # Pull request configuration
+  pull_request:
+    # Show coverage summary in PR
+    base: auto
+    # Behavior options: default, once, off
+    behavior: default
+    # Require approval for coverage drops
+    require_approval: false
+    # Require changes to have tests
+    require_changes: false
+
+# Comment configuration for pull requests
+comment:
+  # Behavior: default, once, off
+  behavior: default
+  
+  # Show coverage summary
+  layout: "reach,diff,flags,tree"
+  
+  # Require minimum changes to comment
+  require_changes: true
+  
+  # Hide complexity information
+  show_carryforward_flags: false
+
+# GitHub integration
+github_checks:
+  # Enable GitHub status checks
+  annotations: true
+
+# Ignore paths for coverage
+ignore:
+  - "tests/"
+  - "docs/"
+  - "scripts/"
+  - "examples/"
+  - "**/__pycache__"
+  - "**/*.pyc"
+  - "setup.py"
+  - "conftest.py"
+  - "*/migrations/*"
+  - "*/venv/*"
+  - "*/.venv/*"
+
+# Flag configuration for different test types
+flags:
+  # Unit tests
+  unit-tests:
+    paths:
+      - tests/unit/
+    carryforward: true
+    
+  # Integration tests  
+  integration-tests:
+    paths:
+      - tests/integration/
+    carryforward: true
+    
+  # End-to-end tests
+  e2e-tests:
+    paths:
+      - tests/e2e/
+    carryforward: true
+    
+  # Performance tests
+  performance-tests:
+    paths:
+      - tests/performance/
+    carryforward: false
+
+# Notification settings
+notifications:
+  # Slack notifications
+  slack:
+    default:
+      # Notify on coverage changes
+      only_pulls: false
+      # Coverage change threshold for notification
+      threshold: 1%
+      
+  # Email notifications  
+  email:
+    default:
+      # Email layout
+      layout: header,diff,tree
+      # Only notify on failures
+      only_pulls: false
+
+# Advanced settings
+profiling:
+  # Critical file paths
+  critical_files: 
+    - "causal_eval/core/"
+    - "causal_eval/api/"
+    - "causal_eval/tasks/"
+  
+  # Python specific settings  
+  python:
+    # Coverage tool
+    coverage_tool: pytest-cov
+    # Show branch coverage
+    show_missing: true

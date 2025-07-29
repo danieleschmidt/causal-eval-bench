@@ -1,0 +1,155 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Explicitly declare text files you want to always be normalized and converted
+# to native line endings on checkout.
+*.py text
+*.md text
+*.txt text
+*.yml text
+*.yaml text
+*.json text
+*.toml text
+*.cfg text
+*.ini text
+*.sh text
+*.sql text
+*.dockerfile text
+Dockerfile text
+Makefile text
+
+# Declare files that will always have CRLF line endings on checkout.
+*.bat text eol=crlf
+
+# Declare files that will always have LF line endings on checkout.
+*.sh text eol=lf
+
+# Denote all files that are truly binary and should not be modified.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.7z binary
+*.rar binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+
+# Python compiled files
+*.pyc binary
+*.pyo binary
+*.pyd binary
+
+# Generated files
+*.mo binary
+*.po diff=gettext
+
+# Archives
+*.7z binary
+*.jar binary
+*.rar binary
+*.zip binary
+*.gz binary
+*.bz2 binary
+*.xz binary
+*.tar binary
+
+# Executables
+*.exe binary
+*.com binary
+*.cmd binary
+*.bat binary
+
+# Database files
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+
+# Images
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.tiff binary
+*.tif binary
+*.bmp binary
+*.webp binary
+
+# Audio
+*.mp3 binary
+*.wav binary
+*.ogg binary
+*.flac binary
+
+# Video
+*.mp4 binary
+*.avi binary
+*.mov binary
+*.wmv binary
+*.flv binary
+*.webm binary
+
+# Fonts
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+
+# Documents
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.ppt binary
+*.pptx binary
+
+# Git merge drivers
+*.py merge=python
+*.md merge=union
+
+# Language-specific attributes
+# Python
+*.py diff=python
+*.pyw diff=python
+
+# Shell
+*.sh linguist-language=Shell
+*.bash linguist-language=Shell
+
+# Jupyter notebooks (store without outputs for clean diffs)
+*.ipynb filter=nbstrip_full diff=jupyternotebook merge=jupyternotebook
+
+# Ignore generated files in diff
+docs/_build/** linguist-generated=true
+*.min.js linguist-generated=true
+*.min.css linguist-generated=true
+dist/** linguist-generated=true
+build/** linguist-generated=true
+coverage.xml linguist-generated=true
+htmlcov/** linguist-generated=true
+.coverage linguist-generated=true
+*.egg-info/** linguist-generated=true
+
+# Performance optimization - don't diff large data files
+*.json filter=lfs diff=lfs merge=lfs -text
+*.csv filter=lfs diff=lfs merge=lfs -text
+*.tsv filter=lfs diff=lfs merge=lfs -text
+*.parquet filter=lfs diff=lfs merge=lfs -text
+*.pkl filter=lfs diff=lfs merge=lfs -text
+*.pickle filter=lfs diff=lfs merge=lfs -text
+
+# Treat as vendored (not shown in GitHub diff by default)
+vendor/** linguist-vendored=true
+node_modules/** linguist-vendored=true
+third_party/** linguist-vendored=true

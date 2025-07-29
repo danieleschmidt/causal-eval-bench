@@ -1,0 +1,126 @@
+# Safety policy configuration for vulnerability scanning
+# See: https://docs.safetycli.com/safety-docs/configuration-file
+
+security:
+  # Ignore specific vulnerabilities (use with caution and justification)
+  ignore-vulnerabilities:
+    # Format: "ID: reason for ignoring"
+    # Example: "12345: This vulnerability doesn't affect our use case"
+    
+  # Ignore unpinned requirements (development dependencies)
+  ignore-unpinned-requirements: false
+  
+  # Continue on errors (for CI/CD integration)
+  continue-on-error: false
+  
+  # Full report including ignored vulnerabilities
+  full-report: true
+  
+  # Output format (json, text, xml)
+  output-format: json
+  
+  # Cache database for offline scanning
+  cache-db: true
+  
+  # Audit mode (more comprehensive scanning)
+  audit: true
+
+# Vulnerability severity levels to fail on
+severity:
+  # Fail on critical vulnerabilities
+  critical: true
+  # Fail on high severity vulnerabilities  
+  high: true
+  # Fail on medium severity vulnerabilities
+  medium: true
+  # Don't fail on low severity (warning only)
+  low: false
+
+# Project-specific configuration
+project:
+  # Project name for reporting
+  name: "causal-eval-bench"
+  
+  # Environment (development, staging, production)
+  environment: "development"
+  
+  # Tags for categorization
+  tags:
+    - "python"
+    - "ai/ml"
+    - "benchmark"
+    - "evaluation"
+
+# Reporting configuration
+reporting:
+  # Send reports to security team
+  email-notifications: false
+  
+  # Integration with security tools
+  jira-integration: false
+  slack-notifications: false
+  
+  # Generate SARIF output for GitHub Security tab
+  sarif-output: true
+  
+  # Generate HTML report
+  html-report: true
+
+# Database configuration
+database:
+  # Use local vulnerability database
+  local-db: true
+  
+  # Auto-update database
+  auto-update: true
+  
+  # Database update frequency (daily, weekly)
+  update-frequency: "daily"
+
+# Advanced scanning options
+scanning:
+  # Scan development dependencies
+  scan-dev-deps: true
+  
+  # Scan optional dependencies
+  scan-optional-deps: true
+  
+  # Deep dependency scanning
+  recursive-scan: true
+  
+  # Timeout for API calls (seconds)
+  timeout: 60
+  
+  # Maximum concurrent scans
+  max-concurrent: 5
+
+# CI/CD integration settings
+ci-cd:
+  # Exit codes for different scenarios
+  exit-codes:
+    vulnerabilities-found: 1
+    no-vulnerabilities: 0
+    scan-error: 2
+    
+  # Fail build on vulnerabilities
+  fail-build: true
+  
+  # Generate build artifacts
+  generate-artifacts: true
+  
+  # Upload results to security dashboard
+  upload-results: false
+
+# Custom rules and exceptions
+custom-rules:
+  # Allow specific packages with known issues
+  allowed-packages: []
+  
+  # Custom severity overrides
+  severity-overrides: {}
+  
+  # Whitelist specific files/paths
+  excluded-paths:
+    - "tests/"
+    - "docs/"
+    - "examples/"

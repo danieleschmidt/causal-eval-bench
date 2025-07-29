@@ -1,0 +1,212 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Automated dependency updates for causal-eval-bench",
+  "extends": [
+    "config:base",
+    "docker:enableMajor",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separatePatchReleases",
+    "helpers:pinGitHubActionsByDigest"
+  ],
+  "timezone": "America/New_York",
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "updateNotScheduled": false,
+  "labels": ["dependencies", "automated"],
+  "assignees": ["@danieleschmidt"],
+  "reviewers": ["@danieleschmidt"],
+  "semanticCommits": "enabled",
+  "commitMessagePrefix": "chore:",
+  "rebaseWhen": "conflicted",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"],
+    "dependencyDashboardApproval": false,
+    "stabilityDays": 0,
+    "prCreation": "immediate"
+  },
+  "osvVulnerabilityAlerts": true,
+  "packageRules": [
+    {
+      "description": "Auto-merge non-major development dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "requiredStatusChecks": null
+    },
+    {
+      "description": "Auto-merge security updates",
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["patch"],
+      "matchPackagePatterns": ["safety", "bandit", "pip-audit"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Group Python typing updates",
+      "matchPackagePatterns": ["types-", "@types/"],
+      "groupName": "Python typing updates",
+      "automerge": true
+    },
+    {
+      "description": "Group linter/formatter updates",
+      "matchPackageNames": [
+        "black",
+        "isort", 
+        "ruff",
+        "mypy",
+        "flake8",
+        "pylint"
+      ],
+      "groupName": "Python linting and formatting tools",
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Group test framework updates",
+      "matchPackageNames": [
+        "pytest",
+        "pytest-cov",
+        "pytest-asyncio",
+        "pytest-mock",
+        "pytest-xdist",
+        "pytest-benchmark",
+        "coverage"
+      ],
+      "groupName": "Python testing tools",
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Group documentation updates",
+      "matchPackageNames": [
+        "mkdocs",
+        "mkdocs-material",
+        "mkdocs-mermaid2-plugin",
+        "mkdocstrings",
+        "sphinx"
+      ],
+      "groupName": "Documentation tools",
+      "schedule": ["before 6am on monday"]  
+    },
+    {
+      "description": "Group FastAPI and web framework updates",
+      "matchPackageNames": [
+        "fastapi",
+        "uvicorn",
+        "starlette",
+        "pydantic",
+        "httpx"
+      ],
+      "groupName": "Web framework updates",
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Group database updates",
+      "matchPackageNames": [
+        "sqlalchemy",
+        "alembic",
+        "asyncpg",
+        "redis"
+      ],
+      "groupName": "Database updates",
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Group AI/ML dependencies",
+      "matchPackageNames": [
+        "transformers",
+        "torch",
+        "numpy",
+        "pandas",
+        "scikit-learn",
+        "scipy",
+        "matplotlib",
+        "seaborn",
+        "plotly",
+        "openai",
+        "anthropic"
+      ],
+      "groupName": "AI/ML dependencies",
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Require approval for major AI/ML updates",
+      "matchPackageNames": [
+        "transformers",
+        "torch", 
+        "openai",
+        "anthropic"
+      ],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Pin Docker image digests",
+      "matchDatasources": ["docker"],
+      "pinDigests": true
+    },
+    {
+      "description": "Auto-merge Docker patch updates",
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
+      "description": "Group GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "pinDigests": true,
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "description": "Require approval for major framework updates",
+      "matchPackageNames": [
+        "fastapi",
+        "sqlalchemy",
+        "pydantic"
+      ],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true,
+      "labels": ["major-update", "requires-review"]
+    }
+  ],
+  "python": {
+    "enabled": true,
+    "pipRequirementsFileName": "requirements.txt",
+    "pipenvFileName": "Pipfile",
+    "poetryFileName": "pyproject.toml"
+  },
+  "docker": {
+    "enabled": true,
+    "pinDigests": true
+  },
+  "github-actions": {
+    "enabled": true,
+    "pinDigests": true
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update Python version in Dockerfile",
+      "fileMatch": ["(^|/)Dockerfile$"],
+      "matchStrings": ["FROM python:(?<currentValue>.*?)\\n"],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "python"
+    }
+  ],
+  "regexManagers": [
+    {
+      "description": "Update Python version in pyproject.toml",
+      "fileMatch": ["pyproject.toml"],
+      "matchStrings": ["python = \"\\^(?<currentValue>.+?)\""],
+      "datasourceTemplate": "python-version",
+      "depNameTemplate": "python"
+    }
+  ]
+}

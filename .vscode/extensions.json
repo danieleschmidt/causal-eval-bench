@@ -1,0 +1,63 @@
+{
+  "recommendations": [
+    // Python development
+    "ms-python.python",
+    "ms-python.black-formatter",
+    "ms-python.isort",
+    "charliermarsh.ruff",
+    "ms-python.mypy-type-checker",
+    "ms-python.pytest",
+
+    // Code formatting and linting
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+
+    // File format support
+    "tamasfe.even-better-toml",
+    "redhat.vscode-yaml",
+    "ms-vscode.vscode-json",
+
+    // Documentation
+    "yzhang.markdown-all-in-one",
+    "bierner.markdown-mermaid",
+    "shd101wyy.markdown-preview-enhanced",
+
+    // Development containers
+    "ms-vscode-remote.remote-containers",
+    "ms-vscode-remote.remote-ssh",
+
+    // Git and version control
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // Testing
+    "ms-vscode.test-adapter-converter",
+    "hbenl.vscode-test-explorer",
+
+    // Docker
+    "ms-azuretools.vscode-docker",
+
+    // Security and code quality
+    "ms-vscode.vscode-github-issue-notebooks",
+    "github.vscode-github-actions",
+
+    // Productivity
+    "ms-vscode.vscode-github-issue-notebooks",
+    "streetsidesoftware.code-spell-checker",
+    "aaron-bond.better-comments",
+    "gruntfuggly.todo-tree",
+
+    // AI and ML specific
+    "ms-toolsai.jupyter",
+    "ms-toolsai.jupyter-keymap",
+    "ms-toolsai.jupyter-renderers",
+
+    // Additional utilities
+    "ms-vscode.hexeditor",
+    "redhat.vscode-commons",
+    "ms-vscode.live-server"
+  ],
+  "unwantedRecommendations": [
+    "ms-python.pylint"
+  ]
+}

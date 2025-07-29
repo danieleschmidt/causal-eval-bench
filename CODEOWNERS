@@ -1,0 +1,205 @@
+# Code Owners for Causal Eval Bench
+# This file defines who must review changes to specific parts of the codebase.
+# Maintainers and contributors are automatically requested for review based on the files changed.
+
+# Global fallback - require review from core maintainers
+* @danieleschmidt @causal-eval-maintainers
+
+# =============================================================================
+# CORE FRAMEWORK
+# =============================================================================
+
+# Core evaluation engine - requires specialized domain expertise
+/causal_eval/tasks/ @danieleschmidt @domain-experts @causal-eval-maintainers
+/causal_eval/evaluation/ @danieleschmidt @ml-experts @causal-eval-maintainers
+/causal_eval/generation/ @danieleschmidt @ai-experts @causal-eval-maintainers
+
+# API and interfaces - critical for stability
+/causal_eval/api/ @danieleschmidt @backend-experts @causal-eval-maintainers
+/causal_eval/__init__.py @danieleschmidt @causal-eval-maintainers
+
+# Configuration and settings
+/causal_eval/config/ @danieleschmidt @devops-team @causal-eval-maintainers
+
+# =============================================================================
+# INFRASTRUCTURE & OPERATIONS
+# =============================================================================
+
+# Docker and containerization
+Dockerfile* @danieleschmidt @devops-team @causal-eval-maintainers
+docker-compose*.yml @danieleschmidt @devops-team @causal-eval-maintainers
+.dockerignore @devops-team @causal-eval-maintainers
+
+# CI/CD workflows - critical infrastructure
+/.github/workflows/ @danieleschmidt @devops-team @causal-eval-maintainers
+/.github/actions/ @danieleschmidt @devops-team @causal-eval-maintainers
+
+# Deployment and monitoring
+/deploy/ @danieleschmidt @devops-team @causal-eval-maintainers
+/monitoring/ @devops-team @sre-team @causal-eval-maintainers
+/scripts/ @danieleschmidt @devops-team @causal-eval-maintainers
+
+# Build configuration
+pyproject.toml @danieleschmidt @python-experts @causal-eval-maintainers
+poetry.lock @danieleschmidt @python-experts @causal-eval-maintainers
+setup.py @danieleschmidt @python-experts @causal-eval-maintainers
+setup.cfg @python-experts @causal-eval-maintainers
+
+# =============================================================================
+# DEVELOPMENT ENVIRONMENT
+# =============================================================================
+
+# Development container configuration
+/.devcontainer/ @danieleschmidt @devops-team @causal-eval-maintainers
+/.vscode/ @danieleschmidt @frontend-team
+
+# Code quality and linting
+.pre-commit-config.yaml @danieleschmidt @python-experts @causal-eval-maintainers
+.ruff.toml @python-experts @causal-eval-maintainers
+mypy.ini @python-experts @causal-eval-maintainers
+.black @python-experts @causal-eval-maintainers
+
+# Testing configuration
+pytest.ini @danieleschmidt @python-experts @causal-eval-maintainers
+tox.ini @python-experts @causal-eval-maintainers
+/tests/ @danieleschmidt @python-experts @causal-eval-maintainers
+
+# =============================================================================
+# DOCUMENTATION
+# =============================================================================
+
+# Core documentation - requires domain expertise
+README.md @danieleschmidt @docs-team @causal-eval-maintainers
+CHANGELOG.md @danieleschmidt @docs-team @causal-eval-maintainers
+
+# Technical documentation
+/docs/ @danieleschmidt @docs-team @causal-eval-maintainers
+*.md @docs-team @causal-eval-maintainers
+
+# API documentation
+/docs/api/ @danieleschmidt @backend-experts @docs-team
+/docs/examples/ @danieleschmidt @docs-team @ml-experts
+
+# Deployment documentation
+/docs/deployment/ @devops-team @sre-team @docs-team
+/docs/monitoring/ @devops-team @sre-team @docs-team
+
+# =============================================================================
+# SECURITY & COMPLIANCE
+# =============================================================================
+
+# Security-sensitive files
+SECURITY.md @danieleschmidt @security-team @causal-eval-maintainers
+/.github/dependabot.yml @security-team @devops-team
+/.secrets.baseline @security-team @causal-eval-maintainers
+
+# License and legal
+LICENSE @danieleschmidt @legal-team @causal-eval-maintainers
+NOTICE @legal-team @causal-eval-maintainers
+
+# Governance
+CONTRIBUTING.md @danieleschmidt @community-team @causal-eval-maintainers
+CODE_OF_CONDUCT.md @community-team @causal-eval-maintainers
+GOVERNANCE.md @danieleschmidt @community-team @causal-eval-maintainers
+
+# =============================================================================
+# DOMAIN-SPECIFIC AREAS
+# =============================================================================
+
+# Machine Learning models and algorithms
+/causal_eval/models/ @danieleschmidt @ml-experts @ai-experts
+/causal_eval/algorithms/ @danieleschmidt @ml-experts @domain-experts
+
+# Data processing and analysis
+/causal_eval/data/ @danieleschmidt @data-engineers @ml-experts
+/causal_eval/analysis/ @danieleschmidt @data-scientists @domain-experts
+
+# Evaluation metrics and benchmarks
+/causal_eval/metrics/ @danieleschmidt @ml-experts @domain-experts
+/benchmarks/ @danieleschmidt @ml-experts @domain-experts
+
+# =============================================================================
+# FRONTEND & UI (if applicable)
+# =============================================================================
+
+# Web interface and dashboards
+/web/ @frontend-team @ui-experts
+/dashboard/ @frontend-team @ui-experts @data-scientists
+
+# Visualization components
+/causal_eval/visualization/ @frontend-team @data-scientists @ui-experts
+
+# =============================================================================
+# SAMPLE DATA & EXAMPLES
+# =============================================================================
+
+# Sample datasets and examples
+/samples/ @danieleschmidt @docs-team @ml-experts
+/examples/ @danieleschmidt @docs-team @ml-experts
+/data/samples/ @data-engineers @ml-experts
+
+# =============================================================================
+# TEAM DEFINITIONS
+# =============================================================================
+# The following GitHub teams should be created in the repository settings:
+#
+# Core Teams:
+# - @causal-eval-maintainers: Core maintainers with merge access
+# - @danieleschmidt: Project lead and primary maintainer
+#
+# Specialized Teams:
+# - @ml-experts: Machine learning specialists
+# - @ai-experts: AI/LLM specialists  
+# - @domain-experts: Causal reasoning domain experts
+# - @data-scientists: Data analysis specialists
+# - @data-engineers: Data pipeline specialists
+#
+# Technical Teams:
+# - @python-experts: Python development specialists
+# - @backend-experts: Backend/API specialists
+# - @frontend-team: Frontend developers
+# - @ui-experts: UI/UX specialists
+# - @devops-team: DevOps and infrastructure
+# - @sre-team: Site reliability engineers
+# - @security-team: Security specialists
+#
+# Support Teams:
+# - @docs-team: Documentation specialists
+# - @community-team: Community management
+# - @legal-team: Legal and compliance
+#
+# =============================================================================
+# REVIEW REQUIREMENTS
+# =============================================================================
+# Minimum review requirements by area:
+#
+# Critical Areas (2+ reviews required):
+# - Core evaluation engine (/causal_eval/tasks/, /causal_eval/evaluation/)
+# - API interfaces (/causal_eval/api/)
+# - Security files (SECURITY.md, workflows)
+# - Release configuration (pyproject.toml, workflows)
+#
+# Standard Areas (1+ review required):
+# - All other code changes
+# - Documentation updates
+# - Configuration changes
+#
+# Auto-merge Eligible (with successful CI):
+# - Dependency updates (automated PRs)
+# - Documentation typos/formatting
+# - Non-functional test updates
+#
+# =============================================================================
+# BRANCH PROTECTION INTEGRATION
+# =============================================================================
+# This CODEOWNERS file should be used with branch protection rules:
+#
+# Main Branch Protection:
+# - Require pull request reviews before merging
+# - Require review from code owners
+# - Dismiss stale PR approvals when new commits are pushed
+# - Require status checks to pass before merging
+# - Require branches to be up to date before merging
+# - Restrict pushes to matching branches (admins only)
+#
+# =============================================================================

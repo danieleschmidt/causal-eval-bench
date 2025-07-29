@@ -1,0 +1,154 @@
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "danieleschmidt"
+    assignees:
+      - "danieleschmidt"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+    target-branch: "main"
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    ignore:
+      # Ignore major version updates for stable dependencies
+      - dependency-name: "fastapi"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pydantic"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "sqlalchemy"
+        update-types: ["version-update:semver-major"]
+    groups:
+      fastapi-ecosystem:
+        patterns:
+          - "fastapi*"
+          - "uvicorn*"
+          - "starlette*"
+      data-science:
+        patterns:
+          - "pandas*"
+          - "numpy*"
+          - "scipy*"
+          - "scikit-learn*"
+          - "matplotlib*"
+          - "seaborn*"
+          - "plotly*"
+      ai-ml:
+        patterns:
+          - "openai*"
+          - "anthropic*"
+          - "transformers*"
+          - "torch*"
+          - "sentence-transformers*"
+          - "datasets*"
+      testing:
+        patterns:
+          - "pytest*"
+          - "hypothesis*"
+          - "factory-boy*"
+          - "faker*"
+          - "responses*"
+      linting:
+        patterns:
+          - "black*"
+          - "isort*"
+          - "ruff*"
+          - "mypy*"
+          - "bandit*"
+          - "safety*"
+          - "pre-commit*"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "10:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "danieleschmidt"
+    assignees:
+      - "danieleschmidt"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    target-branch: "main"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "danieleschmidt"
+    assignees:
+      - "danieleschmidt"
+    commit-message:
+      prefix: "docker"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
+    target-branch: "main"
+
+  # NPM dependencies (for documentation and tooling)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "danieleschmidt"
+    assignees:
+      - "danieleschmidt"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "javascript"
+    target-branch: "main"
+    ignore:
+      # Ignore major version updates for tooling
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      semantic-release:
+        patterns:
+          - "semantic-release*"
+          - "@semantic-release/*"
+      commitlint:
+        patterns:
+          - "@commitlint/*"
+          - "commitlint*"
+      prettier:
+        patterns:
+          - "prettier*"
+          - "@prettier/*"

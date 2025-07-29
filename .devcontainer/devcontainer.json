@@ -97,7 +97,7 @@
     }
   },
 
-  "postCreateCommand": "pip install poetry && poetry install --with dev,test,docs",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
   
   "mounts": [
     "source=${localWorkspaceFolder}/.env,target=/workspaces/causal-eval-bench/.env,type=bind,consistency=cached"

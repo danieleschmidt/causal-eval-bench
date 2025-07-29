@@ -4,7 +4,7 @@
 # =============================================================================
 # Build Stage
 # =============================================================================
-FROM python:3.11-slim-bullseye AS builder
+FROM python:3.13-slim-bullseye AS builder
 
 # Set build-time environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -39,7 +39,7 @@ RUN poetry config virtualenvs.create false \
 # =============================================================================
 # Runtime Stage
 # =============================================================================
-FROM python:3.11-slim-bullseye AS runtime
+FROM python:3.13-slim-bullseye AS runtime
 
 # Set runtime environment variables
 ENV PYTHONUNBUFFERED=1 \

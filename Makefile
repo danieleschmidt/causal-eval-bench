@@ -337,3 +337,60 @@ setup-hooks: ## Setup git hooks
 	$(POETRY) run pre-commit install
 	$(POETRY) run pre-commit install --hook-type commit-msg
 	@echo "$(GREEN)✓ Git hooks installed$(NC)"
+
+quality-check: ## Run comprehensive quality checks
+	@echo "$(BLUE)Running comprehensive quality checks...$(NC)"
+	$(POETRY) run python scripts/quality_check.py
+	@echo "$(GREEN)✓ Quality checks complete$(NC)"
+
+quality-report: ## Generate detailed quality report
+	@echo "$(BLUE)Generating quality report...$(NC)"
+	$(POETRY) run python scripts/quality_check.py --report quality-report.md --json quality-report.json
+	@echo "$(GREEN)✓ Quality report generated$(NC)"
+
+dev-setup: ## Automated development environment setup
+	@echo "$(BLUE)Setting up development environment...$(NC)"
+	$(POETRY) run python scripts/dev_setup.py
+	@echo "$(GREEN)✓ Development setup complete$(NC)"
+
+benchmark: ## Run performance benchmarks
+	@echo "$(BLUE)Running performance benchmarks...$(NC)"
+	$(POETRY) run pytest tests/performance/ --benchmark-only --benchmark-json=benchmark-results.json
+	@echo "$(GREEN)✓ Benchmarks complete$(NC)"
+
+profile: ## Profile application performance
+	@echo "$(BLUE)Profiling application performance...$(NC)"
+	$(POETRY) run python -m cProfile -o profile.stats -m pytest tests/performance/
+	@echo "$(GREEN)✓ Profiling complete$(NC)"
+
+validate-ci: ## Validate CI configuration locally
+	@echo "$(BLUE)Validating CI configuration...$(NC)"
+	@if command -v act >/dev/null 2>&1; then \
+		act --dryrun; \
+	else \
+		echo "$(YELLOW)⚠️  'act' not installed. Install from: https://github.com/nektos/act$(NC)"; \
+	fi
+
+update-deps: ## Update all dependencies safely
+	@echo "$(BLUE)Updating dependencies...$(NC)"
+	$(POETRY) update --dry-run
+	@read -p "Proceed with updates? (y/N): " confirm; \
+	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
+		$(POETRY) update; \
+		echo "$(GREEN)✓ Dependencies updated$(NC)"; \
+	else \
+		echo "$(YELLOW)Dependencies update cancelled$(NC)"; \
+	fi
+
+reset-env: ## Reset development environment
+	@echo "$(RED)WARNING: This will reset your development environment!$(NC)"
+	@read -p "Are you sure? (y/N): " confirm; \
+	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
+		$(DOCKER_COMPOSE) down -v --remove-orphans; \
+		$(POETRY) env remove --all; \
+		make clean; \
+		make dev; \
+		echo "$(GREEN)✓ Environment reset complete$(NC)"; \
+	else \
+		echo "$(YELLOW)Environment reset cancelled$(NC)"; \
+	fi

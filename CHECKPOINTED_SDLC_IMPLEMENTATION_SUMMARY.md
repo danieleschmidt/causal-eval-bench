@@ -86,9 +86,12 @@ The Causal Eval Bench repository has achieved **PRODUCTION-READY** status with t
 - **Development Environment**: Standardized dev containers and tooling
 
 ### 🟡 **Manual Setup Required**
-Due to GitHub App permission limitations, the following require manual setup by repository maintainers:
+Due to GitHub App workflow permission limitations, the following require manual setup by repository maintainers:
 
 1. **GitHub Actions Workflows**: Copy templates from `docs/workflows/examples/` to `.github/workflows/`
+   - **⚠️ CRITICAL**: See `FINAL_WORKFLOW_ACTIVATION_GUIDE.md` for complete activation steps
+   - **Reason**: GitHub App lacks `workflows` permission for security
+   - **Impact**: Workflows ready but need manual activation (5 minutes)
 2. **Repository Secrets**: Configure required secrets as documented in `docs/workflows/README.md`
 3. **Branch Protection Rules**: Configure main branch protection as documented
 4. **GitHub Environments**: Setup staging and production environments
@@ -98,10 +101,14 @@ Due to GitHub App permission limitations, the following require manual setup by 
 
 ### Immediate Actions Required
 1. **Activate Workflows** (5 minutes):
+   - **📖 FOLLOW**: Complete steps in `FINAL_WORKFLOW_ACTIVATION_GUIDE.md`
+   - **Quick commands**:
    ```bash
    # Copy workflow templates
    mkdir -p .github/workflows
    cp docs/workflows/examples/*.yml .github/workflows/
+   cp docs/workflows/production-ready/*.yml .github/workflows/
+   git add .github/workflows/ && git commit -m "feat: activate CI/CD workflows" && git push
    ```
 
 2. **Configure Secrets** (10 minutes):

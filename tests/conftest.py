@@ -2,16 +2,26 @@
 
 import os
 import tempfile
+import asyncio
 from pathlib import Path
 from typing import AsyncGenerator, Generator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+import pytest_asyncio
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.pool import StaticPool
 
 # Set test environment
 os.environ["ENVIRONMENT"] = "test"
-os.environ["DATABASE_URL"] = "sqlite:///./test_causal_eval_bench.db"
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_causal_eval_bench.db"
 os.environ["REDIS_URL"] = "redis://localhost:6379/1"
+os.environ["DEBUG"] = "false"
+
+from causal_eval.database.models import Base
+from causal_eval.database.connection import DatabaseManager
+from causal_eval.core.engine import EvaluationEngine
+from causal_eval.core.metrics import MetricsCollector
 
 
 @pytest.fixture(scope="session")
@@ -22,6 +32,73 @@ def temp_db_file():
     # Cleanup
     if os.path.exists(temp_file.name):
         os.unlink(temp_file.name)
+
+
+@pytest_asyncio.fixture(scope="session")
+async def test_db_engine():
+    """Create test database engine."""
+    # Use in-memory SQLite for tests
+    database_url = "sqlite+aiosqlite:///:memory:"
+    
+    engine = create_async_engine(
+        database_url,
+        echo=False,
+        poolclass=StaticPool,
+        connect_args={
+            "check_same_thread": False,
+        }
+    )
+    
+    # Create all tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    yield engine
+    
+    # Cleanup
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def test_session(test_db_engine):
+    """Create test database session."""
+    async_session = async_sessionmaker(
+        bind=test_db_engine,
+        class_=AsyncSession,
+        expire_on_commit=False
+    )
+    
+    async with async_session() as session:
+        yield session
+
+
+@pytest_asyncio.fixture
+async def test_db_manager(test_db_engine):
+    """Create test database manager."""
+    db_manager = DatabaseManager("sqlite+aiosqlite:///:memory:")
+    db_manager.async_engine = test_db_engine
+    db_manager.async_session_factory = async_sessionmaker(
+        bind=test_db_engine,
+        class_=AsyncSession,
+        expire_on_commit=False
+    )
+    db_manager.is_async = True
+    
+    yield db_manager
+
+
+@pytest.fixture
+def evaluation_engine():
+    """Create evaluation engine for testing."""
+    return EvaluationEngine()
+
+
+@pytest.fixture
+def metrics_collector():
+    """Create metrics collector for testing."""
+    return MetricsCollector()
 
 
 @pytest.fixture

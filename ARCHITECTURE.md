@@ -97,6 +97,23 @@ A comprehensive evaluation framework for testing genuine causal reasoning in lan
 Input Model → Task Generation → Task Execution → Result Collection → Analysis → Report
      ↓              ↓               ↓               ↓              ↓         ↓
   API/CLI    Domain Templates   Model API       Database      Metrics   PDF/JSON
+     ↓              ↓               ↓               ↓              ↓         ↓
+ Model Spec   Causal Scenarios   Reasoning      Evaluation    Error      Visual
+             + Ground Truth     Assessment      Results      Analysis   Reports
+```
+
+### Causal Reasoning Pipeline
+
+```
+1. Task Selection → 2. Scenario Generation → 3. Prompt Creation → 4. Model Query
+        ↓                      ↓                    ↓                ↓
+   Domain-specific        Causal Graph          Structured        LLM API
+   Task Templates         Generation            Prompts           Response
+        ↓                      ↓                    ↓                ↓
+5. Response Parsing → 6. Causal Evaluation → 7. Score Calculation → 8. Result Storage
+        ↓                      ↓                    ↓                ↓
+   Structured         Logical Consistency    Multi-dimensional   Database +
+   Response           + Causal Accuracy      Scoring             Analytics
 ```
 
 ### Key Design Principles
@@ -110,14 +127,17 @@ Input Model → Task Generation → Task Execution → Result Collection → Ana
 ### Technology Stack
 
 - **Language**: Python 3.9+
-- **Web Framework**: FastAPI
-- **Database**: PostgreSQL (production), SQLite (development)
-- **Caching**: Redis
-- **Testing**: pytest, hypothesis
-- **Documentation**: Sphinx
-- **Packaging**: Poetry
-- **CI/CD**: GitHub Actions
-- **Monitoring**: Prometheus, Grafana
+- **Web Framework**: FastAPI with async/await
+- **Database**: PostgreSQL (production), SQLite (development) with SQLAlchemy ORM
+- **Caching**: Redis for high-performance caching
+- **Testing**: pytest, hypothesis, factory-boy for comprehensive testing
+- **Documentation**: MkDocs Material + Sphinx for documentation
+- **Packaging**: Poetry for dependency management
+- **CI/CD**: GitHub Actions with advanced workflow templates
+- **Monitoring**: Prometheus + Grafana for observability
+- **Model APIs**: OpenAI, Anthropic, Hugging Face Transformers
+- **ML Libraries**: scikit-learn, pandas, numpy for analysis
+- **Visualization**: matplotlib, seaborn, plotly for charts
 
 ### Deployment Architecture
 

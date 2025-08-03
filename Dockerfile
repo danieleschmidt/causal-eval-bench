@@ -66,7 +66,7 @@ RUN groupadd --gid 1000 appuser && \
     useradd --uid 1000 --gid appuser --shell /bin/bash --create-home appuser
 
 # Copy Python packages from builder stage
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Create application directories
@@ -98,7 +98,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Default command
-CMD ["uvicorn", "causal_eval.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["uvicorn", "causal_eval.api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
 
 # =============================================================================
 # Development Stage (for development builds)
@@ -128,8 +128,8 @@ RUN poetry config virtualenvs.create false \
 # Switch back to app user
 USER appuser
 
-# Override command for development
-CMD ["uvicorn", "causal_eval.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--workers", "1"]
+# Override command for development  
+CMD ["uvicorn", "causal_eval.api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--reload", "--workers", "1"]
 
 # =============================================================================
 # Production Optimized Stage

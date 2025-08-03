@@ -1,0 +1,116 @@
+# Prometheus recording rules for Causal Eval Bench
+# These rules pre-compute expensive queries for faster dashboard performance
+
+groups:
+  - name: causal_eval_recording_rules
+    interval: 30s
+    rules:
+      # API Performance Metrics
+      - record: causal_eval:http_request_rate
+        expr: sum(rate(http_requests_total[5m])) by (method, endpoint, status)
+        
+      - record: causal_eval:http_request_duration_p95
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, method, endpoint))
+        
+      - record: causal_eval:http_request_duration_p99
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, method, endpoint))
+        
+      - record: causal_eval:http_error_rate
+        expr: sum(rate(http_requests_total{status=~"4..|5.."}[5m])) / sum(rate(http_requests_total[5m]))
+
+  - name: evaluation_metrics
+    interval: 30s
+    rules:
+      # Evaluation Performance
+      - record: causal_eval:evaluation_rate
+        expr: sum(rate(evaluations_total[5m])) by (task_type, model)
+        
+      - record: causal_eval:evaluation_duration_p95
+        expr: histogram_quantile(0.95, sum(rate(evaluation_duration_seconds_bucket[5m])) by (le, task_type))
+        
+      - record: causal_eval:evaluation_success_rate
+        expr: sum(rate(evaluations_total{status="success"}[5m])) / sum(rate(evaluations_total[5m]))
+        
+      - record: causal_eval:evaluation_queue_size
+        expr: evaluation_queue_size
+        
+      - record: causal_eval:active_evaluations
+        expr: active_evaluations_count
+
+  - name: model_performance
+    interval: 60s
+    rules:
+      # Model-specific metrics
+      - record: causal_eval:model_accuracy_avg
+        expr: avg(model_accuracy_score) by (model_name, task_type)
+        
+      - record: causal_eval:model_response_time_p95
+        expr: histogram_quantile(0.95, sum(rate(model_response_duration_seconds_bucket[5m])) by (le, model_name))
+        
+      - record: causal_eval:model_token_usage_rate
+        expr: sum(rate(model_tokens_used_total[5m])) by (model_name)
+        
+      - record: causal_eval:model_error_rate
+        expr: sum(rate(model_requests_total{status="error"}[5m])) / sum(rate(model_requests_total[5m])) by (model_name)
+
+  - name: infrastructure_metrics
+    interval: 30s
+    rules:
+      # Database metrics
+      - record: causal_eval:db_connection_utilization
+        expr: db_connections_active / db_connections_max
+        
+      - record: causal_eval:db_query_duration_p95
+        expr: histogram_quantile(0.95, sum(rate(db_query_duration_seconds_bucket[5m])) by (le))
+        
+      # Redis metrics
+      - record: causal_eval:redis_memory_utilization
+        expr: redis_memory_used_bytes / redis_memory_max_bytes
+        
+      - record: causal_eval:redis_command_rate
+        expr: sum(rate(redis_commands_total[5m])) by (command)
+        
+      # System metrics
+      - record: causal_eval:cpu_utilization
+        expr: 100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+        
+      - record: causal_eval:memory_utilization
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
+        
+      - record: causal_eval:disk_utilization
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100
+
+  - name: business_metrics
+    interval: 60s
+    rules:
+      # Business KPIs
+      - record: causal_eval:daily_evaluations
+        expr: increase(evaluations_total[24h])
+        
+      - record: causal_eval:unique_models_tested
+        expr: count(count by (model_name)(evaluations_total))
+        
+      - record: causal_eval:average_evaluation_score
+        expr: avg(evaluation_score)
+        
+      - record: causal_eval:questions_generated_rate
+        expr: sum(rate(questions_generated_total[1h]))
+        
+      - record: causal_eval:user_session_duration_avg
+        expr: avg(user_session_duration_seconds)
+
+  - name: sla_metrics
+    interval: 30s
+    rules:
+      # SLA tracking
+      - record: causal_eval:api_availability
+        expr: sum(up{job="causal-eval-api"}) / count(up{job="causal-eval-api"})
+        
+      - record: causal_eval:api_latency_sla
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) < 0.5
+        
+      - record: causal_eval:error_budget_remaining
+        expr: 1 - (sum(rate(http_requests_total{status=~"5.."}[30d])) / sum(rate(http_requests_total[30d])))
+        
+      - record: causal_eval:uptime_percentage
+        expr: avg_over_time(up{job="causal-eval-api"}[24h]) * 100

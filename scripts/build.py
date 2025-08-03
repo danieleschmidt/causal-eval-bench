@@ -49,50 +49,125 @@ def cli(ctx, verbose):
 @click.option('--target', '-t', default='runtime', help='Build target (runtime, development, production, testing)')
 @click.option('--tag', default=None, help='Docker image tag')
 @click.option('--platform', default='linux/amd64', help='Target platform')
+@click.option('--multi-arch', is_flag=True, help='Build multi-architecture image')
 @click.option('--push', is_flag=True, help='Push image after build')
 @click.option('--cache', is_flag=True, default=True, help='Use build cache')
+@click.option('--scan', is_flag=True, help='Scan image for vulnerabilities')
+@click.option('--registry', default='ghcr.io/danieleschmidt', help='Container registry')
 @click.pass_context
-def docker(ctx, target, tag, platform, push, cache):
-    """Build Docker image."""
+def docker(ctx, target, tag, platform, multi_arch, push, cache, scan, registry):
+    """Build Docker image with advanced features."""
     verbose = ctx.obj['verbose']
     
-    if not tag:
-        # Generate tag from git commit or current version
-        try:
-            git_sha = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode().strip()
-            tag = f"causal-eval-bench:{target}-{git_sha}"
-        except subprocess.CalledProcessError:
-            tag = f"causal-eval-bench:{target}-latest"
+    # Generate version and tags
+    try:
+        git_sha = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode().strip()
+        git_branch = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode().strip()
+        version = f"{target}-{git_sha}"
+    except subprocess.CalledProcessError:
+        git_sha = "unknown"
+        git_branch = "unknown"
+        version = f"{target}-latest"
     
-    build_cmd = [
-        'docker', 'build',
-        '--target', target,
-        '--platform', platform,
-        '--tag', tag,
-    ]
+    if not tag:
+        base_name = "causal-eval-bench"
+        tag = f"{registry}/{base_name}:{version}"
+        latest_tag = f"{registry}/{base_name}:{target}-latest"
+    else:
+        latest_tag = None
+    
+    if multi_arch:
+        # Multi-architecture build with buildx
+        platforms = "linux/amd64,linux/arm64"
+        
+        # Ensure buildx builder exists
+        builder_name = "causal-eval-builder"
+        run_command([
+            'docker', 'buildx', 'create', '--name', builder_name,
+            '--driver', 'docker-container', '--use'
+        ], check=False)
+        
+        build_cmd = [
+            'docker', 'buildx', 'build',
+            '--platform', platforms,
+            '--target', target,
+            '--tag', tag,
+        ]
+        
+        if latest_tag:
+            build_cmd.extend(['--tag', latest_tag])
+        
+        if push:
+            build_cmd.append('--push')
+        else:
+            build_cmd.append('--load')
+            
+    else:
+        # Standard single-architecture build
+        build_cmd = [
+            'docker', 'build',
+            '--target', target,
+            '--platform', platform,
+            '--tag', tag,
+        ]
+        
+        if latest_tag:
+            build_cmd.extend(['--tag', latest_tag])
     
     if not cache:
         build_cmd.append('--no-cache')
     
-    # Add build args
+    # Add comprehensive build args
+    try:
+        git_commit = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()
+        build_date = subprocess.check_output(['date', '-u', '+%Y-%m-%dT%H:%M:%SZ']).decode().strip()
+    except subprocess.CalledProcessError:
+        git_commit = "unknown"
+        build_date = "unknown"
+    
     build_cmd.extend([
-        '--build-arg', f'GIT_COMMIT={subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()}',
-        '--build-arg', f'BUILD_DATE={subprocess.check_output(["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"]).decode().strip()}',
+        '--build-arg', f'GIT_COMMIT={git_commit}',
+        '--build-arg', f'GIT_BRANCH={git_branch}',
+        '--build-arg', f'BUILD_DATE={build_date}',
+        '--build-arg', f'VERSION={version}',
     ])
     
     build_cmd.append('.')
     
     click.echo(f"Building Docker image: {tag}")
+    if multi_arch:
+        click.echo(f"Multi-architecture build: {platforms}")
+    
     result = run_command(build_cmd)
     
     if result.returncode == 0:
         click.echo(f"✅ Successfully built {tag}")
         
-        if push:
-            click.echo(f"Pushing {tag}...")
-            push_result = run_command(['docker', 'push', tag])
-            if push_result.returncode == 0:
-                click.echo(f"✅ Successfully pushed {tag}")
+        # Security scan if requested
+        if scan:
+            click.echo("🔍 Scanning for vulnerabilities...")
+            scan_result = run_command(['trivy', 'image', '--severity', 'HIGH,CRITICAL', tag], check=False)
+            if scan_result.returncode == 0:
+                click.echo("✅ Security scan passed")
+            else:
+                click.echo("⚠️ Security vulnerabilities found")
+        
+        # Push if requested (only for non-buildx builds)
+        if push and not multi_arch:
+            for push_tag in [tag, latest_tag] if latest_tag else [tag]:
+                click.echo(f"Pushing {push_tag}...")
+                push_result = run_command(['docker', 'push', push_tag])
+                if push_result.returncode == 0:
+                    click.echo(f"✅ Successfully pushed {push_tag}")
+                else:
+                    click.echo(f"❌ Failed to push {push_tag}", err=True)
+                    
+        # Show image size
+        size_result = run_command(['docker', 'images', '--format', 'table {{.Size}}', tag], check=False)
+        if size_result.returncode == 0 and size_result.stdout:
+            size = size_result.stdout.strip().split('\n')[-1]
+            click.echo(f"📏 Image size: {size}")
+            
     else:
         click.echo(f"❌ Build failed for {tag}", err=True)
         sys.exit(1)

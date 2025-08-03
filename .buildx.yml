@@ -1,0 +1,129 @@
+# BuildKit configuration for advanced Docker builds
+# This file configures Docker Buildx for multi-architecture and cache optimization
+
+# Build configuration
+build:
+  # Default platforms for multi-arch builds
+  platforms:
+    - linux/amd64
+    - linux/arm64
+  
+  # Cache configuration
+  cache:
+    # Use registry cache for faster builds
+    type: registry
+    # Cache layers for reuse across builds
+    mode: max
+    # Compression for cache layers
+    compression: gzip
+  
+  # Build arguments that are commonly used
+  args:
+    PYTHON_VERSION: "3.13"
+    POETRY_VERSION: "1.7.1"
+    DEBIAN_VERSION: "bullseye"
+    
+  # Labels applied to all images
+  labels:
+    - "org.opencontainers.image.title=causal-eval-bench"
+    - "org.opencontainers.image.description=Comprehensive evaluation framework for causal reasoning in language models"
+    - "org.opencontainers.image.url=https://github.com/danieleschmidt/causal-eval-bench"
+    - "org.opencontainers.image.source=https://github.com/danieleschmidt/causal-eval-bench"
+    - "org.opencontainers.image.licenses=MIT"
+    - "org.opencontainers.image.vendor=Terragon Labs"
+
+# Registry configuration
+registry:
+  # Default registry for images
+  default: ghcr.io/danieleschmidt
+  
+  # Alternative registries
+  mirrors:
+    - docker.io
+    - quay.io
+  
+  # Authentication will use docker login or environment variables
+  # DOCKER_REGISTRY_USER and DOCKER_REGISTRY_TOKEN
+
+# Optimization settings
+optimization:
+  # Enable layer caching
+  layer_cache: true
+  
+  # Enable inline cache for faster builds
+  inline_cache: true
+  
+  # Compress final images
+  compression: true
+  
+  # Remove unnecessary files
+  cleanup: true
+  
+  # Security scanning
+  security_scan: true
+
+# Build profiles for different environments
+profiles:
+  development:
+    target: development
+    platforms:
+      - linux/amd64  # Single platform for faster dev builds
+    cache: true
+    push: false
+    
+  testing:
+    target: testing
+    platforms:
+      - linux/amd64
+    cache: true
+    push: false
+    security_scan: true
+    
+  production:
+    target: production
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    cache: true
+    push: true
+    security_scan: true
+    optimization: true
+
+# Build hooks - commands to run at different stages
+hooks:
+  pre_build:
+    - echo "Starting build process..."
+    - docker system prune -f
+    
+  post_build:
+    - echo "Build completed successfully"
+    - docker images --filter "reference=causal-eval-bench" --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"
+    
+  on_failure:
+    - echo "Build failed - cleaning up..."
+    - docker builder prune -f
+
+# Advanced buildx features
+features:
+  # Enable experimental features
+  experimental: true
+  
+  # Use BuildKit for advanced features
+  buildkit: true
+  
+  # Enable SBOM generation
+  sbom: true
+  
+  # Enable provenance attestation
+  provenance: true
+
+# Resource limits for builds
+resources:
+  # Memory limit for build containers
+  memory: 4GB
+  
+  # CPU limit for build containers
+  cpu: 2
+  
+  # Disk space warning threshold
+  disk_warning: 10GB

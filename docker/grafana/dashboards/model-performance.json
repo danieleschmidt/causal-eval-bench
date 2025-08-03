@@ -1,0 +1,162 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Model Performance Analysis",
+    "tags": ["causal-eval", "models", "performance"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "refresh": "1m",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Model Accuracy Comparison",
+        "type": "barchart",
+        "targets": [
+          {
+            "expr": "avg(model_accuracy_score) by (model_name, task_type)",
+            "legendFormat": "{{model_name}} - {{task_type}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Model Response Times",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(model_response_duration_seconds_bucket[5m])) by (le, model_name))",
+            "legendFormat": "{{model_name}} - 95th percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum(rate(model_response_duration_seconds_bucket[5m])) by (le, model_name))",
+            "legendFormat": "{{model_name}} - Median",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "yAxes": [
+          {"label": "Seconds", "min": 0},
+          {"show": false}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Token Usage by Model",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(model_tokens_used_total[5m])) by (model_name)",
+            "legendFormat": "{{model_name}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "yAxes": [
+          {"label": "Tokens/sec", "min": 0},
+          {"show": false}
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Model Error Rates",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(model_requests_total{status=\"error\"}[5m])) / sum(rate(model_requests_total[5m])) by (model_name)",
+            "legendFormat": "{{model_name}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "yAxes": [
+          {"label": "Error Rate", "min": 0, "max": 1},
+          {"show": false}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Cost per Model (Estimated)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(model_cost_estimate_total) by (model_name)",
+            "legendFormat": "{{model_name}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Task Type Performance",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "avg(model_accuracy_score) by (task_type, model_name)",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 10, "w": 24, "x": 0, "y": 24}
+      },
+      {
+        "id": 7,
+        "title": "Model Usage Over Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(model_requests_total[5m])) by (model_name)",
+            "legendFormat": "{{model_name}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 34}
+      },
+      {
+        "id": 8,
+        "title": "Confidence Score Distribution",
+        "type": "histogram",
+        "targets": [
+          {
+            "expr": "model_confidence_score",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 42}
+      },
+      {
+        "id": 9,
+        "title": "Top Models by Accuracy",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, avg(model_accuracy_score) by (model_name))",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 42}
+      }
+    ]
+  }
+}

@@ -1,10 +1,16 @@
 # Multi-stage Dockerfile for Causal Eval Bench
 # Optimized for security, performance, and minimal image size
+# Supports multi-architecture builds (linux/amd64, linux/arm64)
 
 # =============================================================================
-# Build Stage
+# Build Stage - Multi-architecture support
 # =============================================================================
-FROM python:3.13-slim-bullseye AS builder
+FROM --platform=$BUILDPLATFORM python:3.13-slim-bullseye AS builder
+
+# Build arguments for cross-compilation
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
+ARG BUILDX_VERSION
 
 # Set build-time environment variables
 ENV PYTHONUNBUFFERED=1 \

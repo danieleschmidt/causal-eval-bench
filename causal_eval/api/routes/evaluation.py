@@ -329,6 +329,115 @@ async def get_difficulties(request: Request) -> List[str]:
     return engine.get_available_difficulties()
 
 
+@router.post("/evaluate-with-model", response_model=Dict[str, Any])
+async def evaluate_with_model(
+    request: Request,
+    eval_request: EvaluationRequest,
+    background_tasks: BackgroundTasks,
+    session = Depends(get_session)
+) -> Dict[str, Any]:
+    """Generate prompt, get model response, and evaluate in one endpoint."""
+    engine = request.app.state.engine
+    model_manager = getattr(request.app.state, 'model_manager', None)
+    metrics_collector = request.app.state.metrics_collector
+    
+    try:
+        # Generate prompt for the specified task
+        prompt = await engine.generate_task_prompt(
+            eval_request.task_type,
+            eval_request.domain or "general",
+            eval_request.difficulty or "medium"
+        )
+        
+        # Get model response if model_name provided
+        if eval_request.model_name and model_manager:
+            try:
+                model_response_obj = await model_manager.generate_response(
+                    eval_request.model_name,
+                    prompt,
+                    temperature=eval_request.metadata.get("temperature", 0.7),
+                    max_tokens=eval_request.metadata.get("max_tokens", 1000)
+                )
+                model_response = model_response_obj.content
+                api_metadata = {
+                    "tokens_used": model_response_obj.tokens_used,
+                    "cost": model_response_obj.cost,
+                    "latency_ms": model_response_obj.latency_ms,
+                    "model_metadata": model_response_obj.metadata
+                }
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Model API error: {str(e)}")
+        else:
+            # Use provided model response or return prompt for manual evaluation
+            if eval_request.model_response:
+                model_response = eval_request.model_response
+                api_metadata = {}
+            else:
+                return {
+                    "prompt": prompt,
+                    "task_type": eval_request.task_type,
+                    "domain": eval_request.domain,
+                    "difficulty": eval_request.difficulty,
+                    "message": "Provide model_response in request body or model_name for automatic generation"
+                }
+        
+        # Create causal evaluation request
+        causal_request = CausalEvaluationRequest(
+            task_type=eval_request.task_type,
+            model_response=model_response,
+            domain=eval_request.domain,
+            difficulty=eval_request.difficulty,
+            task_id=f"{eval_request.task_type}_{eval_request.domain}_{eval_request.difficulty}"
+        )
+        
+        # Run evaluation
+        result = await engine.evaluate_request(causal_request)
+        
+        # Collect metrics in background
+        background_tasks.add_task(
+            metrics_collector.add_evaluation_result,
+            result
+        )
+        
+        # Store in database if session provided
+        if eval_request.model_name:
+            background_tasks.add_task(
+                _store_evaluation_result,
+                session,
+                eval_request.model_name,
+                result
+            )
+        
+        return {
+            "evaluation_id": result.get("task_id"),
+            "overall_score": result.get("overall_score", 0.0),
+            "detailed_scores": {
+                k: v for k, v in result.items() 
+                if k.endswith("_score") and k != "overall_score"
+            },
+            "confidence": result.get("confidence"),
+            "task_type": result.get("task_type"),
+            "domain": result.get("domain"),
+            "difficulty": result.get("difficulty"),
+            "prompt": prompt,
+            "model_response": model_response,
+            "model_api_metadata": api_metadata,
+            "evaluation_metadata": {
+                "timestamp": datetime.utcnow().isoformat(),
+                "model_name": eval_request.model_name,
+                "prompt_length": len(prompt),
+                "response_length": len(model_response)
+            },
+            "explanation": result.get("correct_explanation", ""),
+            "model_reasoning": result.get("model_reasoning", "")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"End-to-end evaluation failed: {str(e)}")
+
+
 @router.get("/metrics", response_model=Dict[str, Any])
 async def get_metrics(request: Request) -> Dict[str, Any]:
     """Get evaluation metrics summary."""

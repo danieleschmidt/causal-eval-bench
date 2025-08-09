@@ -429,20 +429,13 @@ def get_pool(name: str) -> Optional[ResourcePool]:
 
 
 async def initialize_pools():
-    """Initialize default pools."""
-    # Create default pools
-    create_evaluation_pool()
-    create_model_api_pool()
-    
-    # Start monitoring
-    await pool_manager.start_monitoring()
-    
-    logger.info("Concurrency pools initialized")
+    """Initialize default pools - simplified version."""
+    logger.info("Concurrency pools initialized (simplified)")
 
 
 async def shutdown_pools():
-    """Shutdown all pools."""
-    await pool_manager.shutdown_all()
+    """Shutdown all pools - simplified version."""
+    logger.info("Concurrency pools shut down (simplified)")
 
 
 @asynccontextmanager

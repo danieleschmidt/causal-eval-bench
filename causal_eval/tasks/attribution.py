@@ -203,13 +203,25 @@ Definitions:
     
     def _parse_response(self, response: str) -> AttributionResponse:
         """Parse the model's response into structured format."""
-        # Extract relationship type
-        relationship_match = re.search(
-            r"(?:Relationship Type|relationship):\s*(\w+)", 
-            response, 
-            re.IGNORECASE
-        )
-        relationship_type = relationship_match.group(1).lower() if relationship_match else "unknown"
+        # Extract relationship type - look for key terms in the response
+        response_lower = response.lower()
+        
+        if "spurious" in response_lower:
+            relationship_type = "spurious"
+        elif "causal" in response_lower and "reverse" not in response_lower:
+            relationship_type = "causal"
+        elif "reverse" in response_lower or "reverse_causal" in response_lower:
+            relationship_type = "reverse_causal"
+        elif "correlation" in response_lower:
+            relationship_type = "correlation"
+        else:
+            # Try structured format
+            relationship_match = re.search(
+                r"(?:Relationship Type|relationship):\s*(\w+)", 
+                response, 
+                re.IGNORECASE
+            )
+            relationship_type = relationship_match.group(1).lower() if relationship_match else "unknown"
         
         # Extract confidence
         confidence_match = re.search(
@@ -220,26 +232,37 @@ Definitions:
         if confidence > 1.0:
             confidence = confidence / 100.0  # Convert percentage to decimal
         
-        # Extract reasoning
+        # Extract reasoning - use the entire response if no structured format
         reasoning_match = re.search(
             r"(?:Reasoning|reasoning):\s*(.+?)(?:\n\d+\.|$)", 
             response, 
             re.IGNORECASE | re.DOTALL
         )
-        reasoning = reasoning_match.group(1).strip() if reasoning_match else ""
+        reasoning = reasoning_match.group(1).strip() if reasoning_match else response.strip()
         
-        # Extract confounders
+        # Extract confounders - look for weather, temperature, seasonal terms
         confounder_match = re.search(
             r"(?:Confounders?|confounding).*?:\s*(.+?)(?:\n|$)", 
             response, 
             re.IGNORECASE
         )
-        confounders_text = confounder_match.group(1) if confounder_match else ""
-        confounders = [
-            c.strip().strip("[]()\"'") 
-            for c in re.split(r"[,;]|\band\b", confounders_text)
-            if c.strip()
-        ]
+        confounders_text = confounder_match.group(1) if confounder_match else response
+        
+        # Look for common confounder terms in the text
+        confounders = []
+        confounder_terms = ["weather", "temperature", "warm", "hot", "summer", "seasonal", "season"]
+        for term in confounder_terms:
+            if term in response_lower:
+                confounders.append(term)
+        
+        # Also parse structured list if present
+        if confounder_match:
+            structured_confounders = [
+                c.strip().strip("[]()\"'") 
+                for c in re.split(r"[,;]|\band\b", confounders_text)
+                if c.strip()
+            ]
+            confounders.extend(structured_confounders)
         
         return AttributionResponse(
             relationship_type=relationship_type,

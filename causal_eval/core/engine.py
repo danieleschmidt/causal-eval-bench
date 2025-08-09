@@ -27,6 +27,8 @@ class EvaluationResult(BaseModel):
 class CausalEvaluationRequest(BaseModel):
     """Request for causal evaluation."""
     
+    model_config = {"protected_namespaces": ()}
+    
     task_type: str  # "attribution", "counterfactual", "intervention", etc.
     model_response: str
     domain: Optional[str] = "general"

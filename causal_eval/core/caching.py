@@ -427,8 +427,19 @@ def cached_prompt(ttl: int = 86400):
     return CacheDecorator(cache_manager.get_cache("prompts"), "prompt", ttl)
 
 async def initialize_cache(redis_url: Optional[str] = None):
-    """Initialize global cache manager."""
+    """Initialize global cache manager - simplified version."""
     global cache_manager
-    cache_manager = CacheManager(redis_url)
-    await cache_manager.warm_up()
+    
+    # For now, use simple in-memory cache
+    class SimpleCacheManager:
+        def __init__(self):
+            self._cache = {}
+        async def get(self, key: str) -> Any:
+            return self._cache.get(key)
+        async def set(self, key: str, value: Any, ttl: int = 300) -> None:
+            self._cache[key] = value
+        async def cleanup(self) -> None:
+            self._cache.clear()
+    
+    cache_manager = SimpleCacheManager()
     return cache_manager

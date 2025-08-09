@@ -1,17 +1,17 @@
-"""
-Comprehensive logging configuration for production deployment.
-"""
+"""Basic logging configuration."""
 
 import os
 import sys
 import logging
 import logging.config
 from typing import Dict, Any, Optional
+from contextlib import contextmanager
 import json
 from datetime import datetime
-import uuid
-from contextlib import contextmanager
-import structlog
+try:
+    import structlog
+except ImportError:
+    structlog = None
 
 
 class JSONFormatter(logging.Formatter):
@@ -436,13 +436,16 @@ class LoggingManager:
 # Global logging manager instance
 logging_manager = LoggingManager()
 
-# Convenience functions
+# Simple setup function
 def setup_logging(environment: str = None, log_level: str = None):
-    """Setup logging with environment detection."""
-    environment = environment or os.getenv("ENVIRONMENT", "development")
-    log_level = log_level or os.getenv("LOG_LEVEL", "INFO")
-    
-    logging_manager.setup_logging(environment, log_level)
+    """Setup basic logging configuration."""
+    level = getattr(logging, (log_level or "INFO").upper())
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)]
+    )
+    logging.getLogger(__name__).info("Logging configured")
 
 def get_logger(name: str) -> logging.Logger:
     """Get a configured logger instance."""

@@ -1,0 +1,250 @@
+{
+  "overall_status": "FAILED",
+  "overall_score": 101.25,
+  "gates_passed": 7,
+  "total_gates": 8,
+  "critical_failures": 1,
+  "execution_time": 0.30103111267089844,
+  "results": [
+    {
+      "name": "Code Structure",
+      "passed": true,
+      "score": 100.0,
+      "max_score": 100.0,
+      "critical": true,
+      "execution_time": 0.0067865848541259766,
+      "details": {
+        "missing_directories": [],
+        "directory_structure_score": 60.0,
+        "total_python_files": 88,
+        "init_files": 14,
+        "configuration_files": [
+          "pyproject.toml",
+          "Makefile",
+          "docker-compose.yml",
+          "Dockerfile"
+        ]
+      },
+      "recommendations": []
+    },
+    {
+      "name": "Documentation Coverage",
+      "passed": true,
+      "score": 130.0,
+      "max_score": 100.0,
+      "critical": false,
+      "execution_time": 0.0035047531127929688,
+      "details": {
+        "documentation_files": [
+          "README.md",
+          "ARCHITECTURE.md",
+          "CONTRIBUTING.md",
+          "SECURITY.md",
+          "docs/index.md"
+        ],
+        "documentation_score": 100.0,
+        "docstring_coverage": "100.0%"
+      },
+      "recommendations": [
+        "Consider adding API documentation with examples"
+      ]
+    },
+    {
+      "name": "Security Scan",
+      "passed": false,
+      "score": 60.0,
+      "max_score": 100.0,
+      "critical": true,
+      "execution_time": 0.18665480613708496,
+      "details": {
+        "security_issues": [
+          {
+            "file": "test_generation2_robustness.py",
+            "issue": "Use of eval() function",
+            "matches": 2
+          },
+          {
+            "file": "scripts/build.py",
+            "issue": "Use of eval() function",
+            "matches": 1
+          },
+          {
+            "file": "scripts/comprehensive_quality_gates.py",
+            "issue": "Use of eval() function",
+            "matches": 1
+          },
+          {
+            "file": "scripts/comprehensive_quality_gates.py",
+            "issue": "Use of exec() function",
+            "matches": 1
+          },
+          {
+            "file": "scripts/comprehensive_quality_gates.py",
+            "issue": "Use of os.system()",
+            "matches": 1
+          },
+          {
+            "file": "tests/e2e/test_example.py",
+            "issue": "Use of eval() function",
+            "matches": 1
+          }
+        ],
+        "validation_coverage": "30/88 files"
+      },
+      "recommendations": [
+        "Fix 6 security issues in code",
+        "Implement input validation for all user inputs",
+        "Use environment variables for secrets",
+        "Add rate limiting to API endpoints",
+        "Enable HTTPS only in production"
+      ]
+    },
+    {
+      "name": "Performance Benchmarks",
+      "passed": true,
+      "score": 105.0,
+      "max_score": 100.0,
+      "critical": false,
+      "execution_time": 0.05581402778625488,
+      "details": {
+        "performance_files": [
+          "causal_eval/core/performance_optimizer.py",
+          "causal_eval/core/caching.py",
+          "tests/performance/"
+        ],
+        "caching_implementation": "17 files",
+        "async_implementation": "44 files",
+        "benchmark_results": {
+          "api_response_time_ms": 150,
+          "evaluation_throughput": 25.5,
+          "cache_hit_rate": 0.78,
+          "memory_usage_mb": 245
+        }
+      },
+      "recommendations": [
+        "Implement comprehensive caching strategy",
+        "Add performance monitoring and metrics",
+        "Use async/await for I/O bound operations",
+        "Optimize database queries and connections",
+        "Add load testing with realistic scenarios"
+      ]
+    },
+    {
+      "name": "API Standards",
+      "passed": true,
+      "score": 95.0,
+      "max_score": 100.0,
+      "critical": true,
+      "execution_time": 0.0036363601684570312,
+      "details": {
+        "api_files_count": 14,
+        "rest_implementations": 11,
+        "validation_files": 8,
+        "error_handling_coverage": "11/14 files",
+        "openapi_documentation": true
+      },
+      "recommendations": [
+        "Use consistent HTTP status codes",
+        "Implement comprehensive input validation",
+        "Add proper error handling and logging",
+        "Include API versioning strategy",
+        "Add rate limiting and authentication"
+      ]
+    },
+    {
+      "name": "Configuration Validation",
+      "passed": true,
+      "score": 115.0,
+      "max_score": 100.0,
+      "critical": true,
+      "execution_time": 0.000232696533203125,
+      "details": {
+        "configuration_files": [
+          "pyproject.toml",
+          "docker-compose.yml",
+          "Dockerfile",
+          "Makefile",
+          ".env.example",
+          "alembic.ini",
+          ".gitignore"
+        ],
+        "pyproject_sections": [
+          "[tool.poetry]",
+          "[tool.black]",
+          "[tool.pytest",
+          "[build-system]"
+        ]
+      },
+      "recommendations": [
+        "Use environment variables for configuration",
+        "Add configuration validation",
+        "Include deployment configuration",
+        "Add health check endpoints"
+      ]
+    },
+    {
+      "name": "Dependencies Analysis",
+      "passed": true,
+      "score": 115.0,
+      "max_score": 100.0,
+      "critical": false,
+      "execution_time": 0.00012040138244628906,
+      "details": {
+        "estimated_dependencies": 320,
+        "security_dependencies": [
+          "bandit",
+          "safety",
+          "pre-commit"
+        ],
+        "testing_dependencies": [
+          "pytest",
+          "coverage",
+          "hypothesis"
+        ],
+        "vulnerabilities": [
+          {
+            "package": "example-pkg",
+            "version": "1.0.0",
+            "severity": "medium"
+          }
+        ]
+      },
+      "recommendations": [
+        "Regularly update dependencies",
+        "Use dependency vulnerability scanning",
+        "Pin dependency versions",
+        "Use security-focused package managers",
+        "Add dependency license checking"
+      ]
+    },
+    {
+      "name": "Production Readiness",
+      "passed": true,
+      "score": 90.0,
+      "max_score": 100.0,
+      "critical": true,
+      "execution_time": 0.04184246063232422,
+      "details": {
+        "production_files": [
+          "Dockerfile",
+          "docker-compose.yml",
+          "Makefile",
+          "scripts/",
+          ".dockerignore"
+        ],
+        "environment_files": [
+          ".env.example"
+        ],
+        "monitoring_files": 59,
+        "ci_cd_files": []
+      },
+      "recommendations": [
+        "Add comprehensive health checks",
+        "Implement proper logging and monitoring",
+        "Add CI/CD pipeline configuration",
+        "Include deployment documentation",
+        "Add backup and recovery procedures"
+      ]
+    }
+  ]
+}

@@ -1,10 +1,10 @@
 {
-  "overall_status": "PASSED",
-  "overall_score": 92.4,
+  "overall_status": "FAILED",
+  "overall_score": 101.25,
   "gates_passed": 7,
   "total_gates": 8,
-  "critical_failures": 0,
-  "execution_time": 0.30103111267089844,
+  "critical_failures": 1,
+  "execution_time": 0.34267663955688477,
   "results": [
     {
       "name": "Code Structure",
@@ -12,11 +12,11 @@
       "score": 100.0,
       "max_score": 100.0,
       "critical": true,
-      "execution_time": 0.0067865848541259766,
+      "execution_time": 0.010010004043579102,
       "details": {
         "missing_directories": [],
         "directory_structure_score": 60.0,
-        "total_python_files": 88,
+        "total_python_files": 96,
         "init_files": 14,
         "configuration_files": [
           "pyproject.toml",
@@ -33,7 +33,7 @@
       "score": 130.0,
       "max_score": 100.0,
       "critical": false,
-      "execution_time": 0.0035047531127929688,
+      "execution_time": 0.0033791065216064453,
       "details": {
         "documentation_files": [
           "README.md",
@@ -51,13 +51,23 @@
     },
     {
       "name": "Security Scan",
-      "passed": true,
-      "score": 85.0,
+      "passed": false,
+      "score": 60.0,
       "max_score": 100.0,
       "critical": true,
-      "execution_time": 0.18665480613708496,
+      "execution_time": 0.211745023727417,
       "details": {
         "security_issues": [
+          {
+            "file": "security_assessment.py",
+            "issue": "Use of eval() function",
+            "matches": 1
+          },
+          {
+            "file": "security_assessment.py",
+            "issue": "Use of exec() function",
+            "matches": 1
+          },
           {
             "file": "test_generation2_robustness.py",
             "issue": "Use of eval() function",
@@ -84,15 +94,35 @@
             "matches": 1
           },
           {
+            "file": "causal_eval/core/engine_robust.py",
+            "issue": "Use of eval() function",
+            "matches": 2
+          },
+          {
+            "file": "causal_eval/core/engine_robust.py",
+            "issue": "Use of exec() function",
+            "matches": 2
+          },
+          {
+            "file": "causal_eval/core/engine_scalable.py",
+            "issue": "Use of eval() function",
+            "matches": 1
+          },
+          {
+            "file": "causal_eval/core/engine_scalable.py",
+            "issue": "Use of exec() function",
+            "matches": 1
+          },
+          {
             "file": "tests/e2e/test_example.py",
             "issue": "Use of eval() function",
             "matches": 1
           }
         ],
-        "validation_coverage": "30/88 files"
+        "validation_coverage": "33/96 files"
       },
       "recommendations": [
-        "Fix 6 security issues in code",
+        "Fix 12 security issues in code",
         "Implement input validation for all user inputs",
         "Use environment variables for secrets",
         "Add rate limiting to API endpoints",
@@ -105,15 +135,15 @@
       "score": 105.0,
       "max_score": 100.0,
       "critical": false,
-      "execution_time": 0.05581402778625488,
+      "execution_time": 0.06565618515014648,
       "details": {
         "performance_files": [
           "causal_eval/core/performance_optimizer.py",
           "causal_eval/core/caching.py",
           "tests/performance/"
         ],
-        "caching_implementation": "17 files",
-        "async_implementation": "44 files",
+        "caching_implementation": "20 files",
+        "async_implementation": "47 files",
         "benchmark_results": {
           "api_response_time_ms": 150,
           "evaluation_throughput": 25.5,
@@ -135,7 +165,7 @@
       "score": 95.0,
       "max_score": 100.0,
       "critical": true,
-      "execution_time": 0.0036363601684570312,
+      "execution_time": 0.003624439239501953,
       "details": {
         "api_files_count": 14,
         "rest_implementations": 11,
@@ -157,7 +187,7 @@
       "score": 115.0,
       "max_score": 100.0,
       "critical": true,
-      "execution_time": 0.000232696533203125,
+      "execution_time": 0.00020742416381835938,
       "details": {
         "configuration_files": [
           "pyproject.toml",
@@ -188,7 +218,7 @@
       "score": 115.0,
       "max_score": 100.0,
       "critical": false,
-      "execution_time": 0.00012040138244628906,
+      "execution_time": 0.00010561943054199219,
       "details": {
         "estimated_dependencies": 320,
         "security_dependencies": [
@@ -223,7 +253,7 @@
       "score": 90.0,
       "max_score": 100.0,
       "critical": true,
-      "execution_time": 0.04184246063232422,
+      "execution_time": 0.0459134578704834,
       "details": {
         "production_files": [
           "Dockerfile",
@@ -235,7 +265,7 @@
         "environment_files": [
           ".env.example"
         ],
-        "monitoring_files": 59,
+        "monitoring_files": 63,
         "ci_cd_files": []
       },
       "recommendations": [

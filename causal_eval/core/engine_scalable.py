@@ -195,7 +195,7 @@ class ScalableEvaluationEngine:
     async def _get_cached_result(self, cache_key: str) -> Optional[Dict[str, Any]]:
         """Retrieve cached evaluation result."""
         try:
-            cached = self.intelligent_cache.get(cache_key)
+            cached = await self.intelligent_cache.get(cache_key)
             if cached is not None:
                 self.metrics.cache_hit()
                 logger.debug(f"Cache hit for key: {cache_key}")
@@ -211,7 +211,7 @@ class ScalableEvaluationEngine:
     async def _cache_result(self, cache_key: str, result: Dict[str, Any], ttl: float = 3600.0):
         """Cache evaluation result."""
         try:
-            self.intelligent_cache.set(cache_key, result, ttl)
+            await self.intelligent_cache.set(cache_key, result, ttl)
             logger.debug(f"Cached result for key: {cache_key}")
         except Exception as e:
             logger.warning(f"Cache storage error: {e}")
@@ -388,7 +388,7 @@ class ScalableEvaluationEngine:
             
             # Create result with performance data
             result = ScalableEvaluationResult(
-                task_id=task_config.get("task_id", f"{task_type}_{domain}"),
+                task_id=task_config.get("task_id") or f"{task_type}_{domain}",
                 domain=domain,
                 score=evaluation_result.get("overall_score", 0.0),
                 reasoning_quality=evaluation_result.get("reasoning_score", 0.0),
@@ -430,7 +430,7 @@ class ScalableEvaluationEngine:
             logger.error(f"Evaluation {request_id} failed after {execution_time:.2f}ms: {str(e)}")
             
             return ScalableEvaluationResult(
-                task_id=task_config.get("task_id", "error"),
+                task_id=task_config.get("task_id") or "error",
                 domain=domain,
                 score=0.0,
                 reasoning_quality=0.0,

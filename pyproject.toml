@@ -31,7 +31,7 @@ sqlalchemy = "^2.0.0"
 alembic = "^1.13.0"
 asyncpg = "^0.29.0"
 redis = "^6.4.0"
-httpx = "^0.25.0"
+httpx = "^0.28.1"
 aiofiles = "^24.1.0"
 python-multipart = "^0.0.6"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
@@ -73,7 +73,7 @@ factory-boy = "^3.3.0"
 faker = "^37.5.3"
 freezegun = "^1.2.2"
 responses = "^0.25.7"
-httpx = "^0.25.0"
+httpx = "^0.28.1"
 respx = "^0.20.0"
 
 [tool.poetry.group.lint.dependencies]

@@ -1,20 +1,30 @@
 {
-  "security_score": 54.41860465116279,
-  "total_findings": 43,
+  "security_score": 54.8936170212766,
+  "total_findings": 47,
   "by_severity": {
     "low": 0,
-    "medium": 35,
+    "medium": 39,
     "high": 8,
     "critical": 0
   },
   "by_category": {
-    "Cross-Site Scripting (XSS)": 6,
+    "Cross-Site Scripting (XSS)": 7,
     "Dependency Vulnerability": 1,
     "Configuration Security": 1,
-    "Logging Security": 32,
+    "Logging Security": 35,
     "Cryptography": 3
   },
   "findings": [
+    {
+      "category": "Cross-Site Scripting (XSS)",
+      "level": "medium",
+      "title": "Request data in f-string",
+      "description": "Potential XSS vulnerability: f\"\\n\u2705 Request {i} - {request.task_type.title()}",
+      "file_path": "test_causal_evaluation_system.py",
+      "line_number": 198,
+      "recommendation": "Sanitize and escape user input before rendering",
+      "cve_reference": null
+    },
     {
       "category": "Cross-Site Scripting (XSS)",
       "level": "medium",
@@ -209,6 +219,26 @@
       "category": "Logging Security",
       "level": "medium",
       "title": "Key in logs",
+      "description": "Sensitive data in logs: logger.debug(f\"Cache hit for key: {cache_key",
+      "file_path": "causal_eval/core/engine_scalable.py",
+      "line_number": 201,
+      "recommendation": "Avoid logging sensitive information",
+      "cve_reference": null
+    },
+    {
+      "category": "Logging Security",
+      "level": "medium",
+      "title": "Key in logs",
+      "description": "Sensitive data in logs: logger.debug(f\"Cached result for key: {cache_key",
+      "file_path": "causal_eval/core/engine_scalable.py",
+      "line_number": 215,
+      "recommendation": "Avoid logging sensitive information",
+      "cve_reference": null
+    },
+    {
+      "category": "Logging Security",
+      "level": "medium",
+      "title": "Key in logs",
       "description": "Sensitive data in logs: logger.critical(f\"Frequent error detected: {error_key} - Count: {self.error_counts[error_key",
       "file_path": "causal_eval/core/error_handling.py",
       "line_number": 149,
@@ -319,9 +349,9 @@
       "category": "Logging Security",
       "level": "medium",
       "title": "Key in logs",
-      "description": "Sensitive data in logs: logger.debug(f\"Cache hit for key: {cache_key",
-      "file_path": "causal_eval/core/engine_scalable.py",
-      "line_number": 201,
+      "description": "Sensitive data in logs: logger.warning(f\"No translation found for key: {key",
+      "file_path": "causal_eval/i18n/localization.py",
+      "line_number": 81,
       "recommendation": "Avoid logging sensitive information",
       "cve_reference": null
     },
@@ -329,9 +359,9 @@
       "category": "Logging Security",
       "level": "medium",
       "title": "Key in logs",
-      "description": "Sensitive data in logs: logger.debug(f\"Cached result for key: {cache_key",
-      "file_path": "causal_eval/core/engine_scalable.py",
-      "line_number": 215,
+      "description": "Sensitive data in logs: logger.warning(f\"Missing format argument for key {key",
+      "file_path": "causal_eval/i18n/localization.py",
+      "line_number": 87,
       "recommendation": "Avoid logging sensitive information",
       "cve_reference": null
     },
@@ -402,6 +432,16 @@
       "description": "Sensitive data in logs: login(self.username, self.password",
       "file_path": "causal_eval/integrations/notifications.py",
       "line_number": 119,
+      "recommendation": "Avoid logging sensitive information",
+      "cve_reference": null
+    },
+    {
+      "category": "Logging Security",
+      "level": "medium",
+      "title": "Key in logs",
+      "description": "Sensitive data in logs: logger.info(\"Key",
+      "file_path": "causal_eval/research/baseline_models.py",
+      "line_number": 186,
       "recommendation": "Avoid logging sensitive information",
       "cve_reference": null
     },

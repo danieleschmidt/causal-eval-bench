@@ -1,0 +1,81 @@
+{
+  "overall_score": 0.7622299382716049,
+  "test_quality": "GOOD",
+  "execution_time": 0.022879838943481445,
+  "total_tests": 16,
+  "total_passed": 16,
+  "pass_rate": 1.0,
+  "category_results": {
+    "Discovery Engine Tests": {
+      "score": 0.8080555555555555,
+      "tests_run": 4,
+      "tests_passed": 4,
+      "individual_results": [
+        "TestResult(test_name='hypothesis_generation', status='passed', score=0.8299999999999998, execution_time=4.863739013671875e-05, details={'hypotheses_count': 10, 'avg_confidence': 0.7899999999999999}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 805870))",
+        "TestResult(test_name='algorithm_synthesis', status='passed', score=0.7799999999999999, execution_time=3.075599670410156e-05, details={'algorithms_count': 5, 'avg_performance': 0.8400000000000001}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 805912))",
+        "TestResult(test_name='opportunity_identification', status='passed', score=0.8333333333333334, execution_time=1.7881393432617188e-05, details={'opportunities_count': 3, 'high_impact_count': 1}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 805936))",
+        "TestResult(test_name='knowledge_transfer', status='passed', score=0.7888888888888889, execution_time=8.58306884765625e-06, details={'transfer_confidence': 0.7}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 805947))"
+      ]
+    },
+    "Validation Suite Tests": {
+      "score": 0.8507407407407408,
+      "tests_run": 3,
+      "tests_passed": 3,
+      "individual_results": [
+        "TestResult(test_name='comprehensive_validation', status='passed', score=0.9333333333333332, execution_time=1.8358230590820312e-05, details={'overall_performance': 0.7999999999999999}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 805986))",
+        "TestResult(test_name='cross_validation', status='passed', score=0.8300000000000001, execution_time=7.3909759521484375e-06, details={'mean_score': 0.74, 'temporal_stability': 0.8}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 805996))",
+        "TestResult(test_name='adversarial_validation', status='passed', score=0.7888888888888889, execution_time=1.3589859008789062e-05, details={'overall_robustness': 0.7}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 806011))"
+      ]
+    },
+    "Integration Tests": {
+      "score": 0.8472222222222222,
+      "tests_run": 2,
+      "tests_passed": 2,
+      "individual_results": [
+        "TestResult(test_name='discovery_validation_pipeline', status='passed', score=0.9, execution_time=3.1948089599609375e-05, details={'hypotheses_generated': 5, 'algorithms_synthesized': 5, 'validation_performance': 0.7999999999999999}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 806057))",
+        "TestResult(test_name='cross_domain_pipeline', status='passed', score=0.7944444444444444, execution_time=1.6927719116210938e-05, details={'transfer_confidence': 0.7, 'adapted_hypotheses': 3}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 806076))"
+      ]
+    },
+    "Performance Tests": {
+      "score": 0.85,
+      "tests_run": 2,
+      "tests_passed": 2,
+      "individual_results": [
+        "TestResult(test_name='scalability_test', status='passed', score=0.7, execution_time=0.0005140304565429688, details={'execution_times': [1.5497207641601562e-05, 0.0003180503845214844, 0.00017452239990234375], 'scalability_score': 0.7}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 806608))",
+        "TestResult(test_name='memory_efficiency', status='passed', score=1.0, execution_time=0.0028896331787109375, details={'objects_created': 1000}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 809506))"
+      ]
+    },
+    "Robustness Tests": {
+      "score": 0.49375,
+      "tests_run": 2,
+      "tests_passed": 2,
+      "individual_results": [
+        "TestResult(test_name='invalid_input_handling', status='passed', score=0.1875, execution_time=0.01888275146484375, details={'robustness_score': 0.1875}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 828427))",
+        "TestResult(test_name='error_recovery', status='passed', score=0.8, execution_time=3.337860107421875e-05, details={'validation_completed': True}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 828473))"
+      ]
+    },
+    "Quality Metrics Tests": {
+      "score": 0.7236111111111111,
+      "tests_run": 3,
+      "tests_passed": 3,
+      "individual_results": [
+        "TestResult(test_name='hypothesis_quality_assessment', status='passed', score=0.74875, execution_time=0.00010228157043457031, details={'overall_quality': 0.74875, 'diversity_score': 0.5, 'average_novelty': 0.7, 'average_confidence': 0.7949999999999999, 'average_completeness': 1.0, 'hypothesis_count': 20, 'mechanism_types': ['direct', 'mediated'], 'domains_covered': ['medical']}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 828614))",
+        "TestResult(test_name='algorithm_quality_assessment', status='passed', score=0.6970833333333334, execution_time=3.838539123535156e-05, details={'overall_quality': 0.6970833333333334, 'average_performance': 0.8400000000000001, 'average_innovation': 0.615, 'average_completeness': 1.0, 'diversity_score': 0.3333333333333333, 'algorithm_count': 5, 'approaches_used': ['unknown']}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 828656))",
+        "TestResult(test_name='validation_quality_assessment', status='passed', score=0.725, execution_time=1.6689300537109375e-05, details={'overall_quality': 0.725, 'performance_score': 0.7999999999999999, 'completeness_score': 1.0, 'coverage_score': 0.6, 'statistical_rigor': 0.5, 'scenarios_tested': 3}, error_message=None, timestamp=datetime.datetime(2025, 8, 21, 4, 22, 32, 828674))"
+      ]
+    }
+  },
+  "recommendations": [
+    "Good test performance. Minor improvements recommended before full deployment.",
+    "Improve Robustness Tests - score below threshold (49.4%)",
+    "Strengthen error handling and input validation mechanisms"
+  ],
+  "test_summary": {
+    "research_discovery": 0.8080555555555555,
+    "validation_suite": 0.8507407407407408,
+    "integration": 0.8472222222222222,
+    "performance": 0.85,
+    "robustness": 0.49375,
+    "quality_metrics": 0.7236111111111111
+  }
+}

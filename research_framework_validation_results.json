@@ -1,0 +1,195 @@
+{
+  "test_metadata": {
+    "test_name": "Causal_Evaluation_Research_Framework_Validation",
+    "execution_time": 0.001,
+    "timestamp": "2025-08-21T04:14:49.396672",
+    "total_experiments": 9
+  },
+  "algorithm_discovery": {
+    "novel_algorithms_tested": 5,
+    "baseline_algorithms_tested": 4,
+    "novel_mean_performance": 0.8633,
+    "baseline_mean_performance": 0.5056,
+    "relative_improvement": 70.75,
+    "statistical_significance": true,
+    "discovery_quality": "HIGH"
+  },
+  "statistical_validation": {
+    "conditions_tested": 4,
+    "total_samples": 200,
+    "condition_results": {
+      "high_noise": {
+        "mean": 0.4978,
+        "std_dev": 0.0283,
+        "variance": 0.0008,
+        "sample_size": 50,
+        "raw_scores": [
+          0.5409999999999999,
+          0.5099999999999999,
+          0.5459999999999999,
+          0.45899999999999996,
+          0.5389999999999999
+        ]
+      },
+      "medium_noise": {
+        "mean": 0.6003,
+        "std_dev": 0.0317,
+        "variance": 0.001,
+        "sample_size": 50,
+        "raw_scores": [
+          0.5619999999999999,
+          0.576,
+          0.5569999999999999,
+          0.58,
+          0.592
+        ]
+      },
+      "low_noise": {
+        "mean": 0.6458,
+        "std_dev": 0.0311,
+        "variance": 0.001,
+        "sample_size": 50,
+        "raw_scores": [
+          0.6349999999999999,
+          0.6029999999999999,
+          0.6089999999999999,
+          0.6699999999999999,
+          0.6629999999999999
+        ]
+      },
+      "control": {
+        "mean": 0.7046,
+        "std_dev": 0.0304,
+        "variance": 0.0009,
+        "sample_size": 50,
+        "raw_scores": [
+          0.741,
+          0.6769999999999999,
+          0.725,
+          0.6639999999999999,
+          0.6679999999999999
+        ]
+      }
+    },
+    "significant_differences": [
+      {
+        "condition": "high_noise",
+        "effect_size": 6.803,
+        "direction": "worse"
+      },
+      {
+        "condition": "medium_noise",
+        "effect_size": 3.431,
+        "direction": "worse"
+      },
+      {
+        "condition": "low_noise",
+        "effect_size": 1.934,
+        "direction": "worse"
+      }
+    ],
+    "statistical_power": 1.0,
+    "experimental_validity": "HIGH"
+  },
+  "baseline_comparison": {
+    "baseline_methods_tested": 5,
+    "proposed_methods_tested": 3,
+    "best_baseline_performance": 0.749,
+    "best_proposed_performance": 0.809,
+    "improvement_over_best_baseline": 8.01,
+    "improvement_over_mean_baseline": 29.74,
+    "ranking": [
+      [
+        "multimodal_causality",
+        0.809,
+        "proposed"
+      ],
+      [
+        "temporal_causal_inference",
+        0.792,
+        "proposed"
+      ],
+      [
+        "neural_network",
+        0.749,
+        "baseline"
+      ],
+      [
+        "causal_attention",
+        0.707,
+        "proposed"
+      ],
+      [
+        "gradient_boosting",
+        0.636,
+        "baseline"
+      ],
+      [
+        "random_forest",
+        0.629,
+        "baseline"
+      ],
+      [
+        "linear_regression",
+        0.523,
+        "baseline"
+      ],
+      [
+        "simple_correlation",
+        0.428,
+        "baseline"
+      ]
+    ],
+    "methodology_quality": "GOOD"
+  },
+  "publication_output": {
+    "sections_generated": 6,
+    "complete_sections": 6,
+    "high_quality_sections": 2,
+    "publication_readiness_score": 0.667,
+    "quality_metrics": {
+      "abstract": {
+        "word_count": 79,
+        "completeness": "COMPLETE",
+        "academic_quality": "HIGH"
+      },
+      "methodology": {
+        "word_count": 73,
+        "completeness": "COMPLETE",
+        "academic_quality": "MEDIUM"
+      },
+      "results": {
+        "word_count": 84,
+        "completeness": "COMPLETE",
+        "academic_quality": "MEDIUM"
+      },
+      "discussion": {
+        "word_count": 82,
+        "completeness": "COMPLETE",
+        "academic_quality": "MEDIUM"
+      },
+      "conclusion": {
+        "word_count": 87,
+        "completeness": "COMPLETE",
+        "academic_quality": "HIGH"
+      },
+      "references": {
+        "word_count": 74,
+        "completeness": "COMPLETE",
+        "academic_quality": "MEDIUM"
+      }
+    },
+    "output_quality": "NEEDS_REVISION"
+  },
+  "overall_assessment": {
+    "research_framework_score": 0.614,
+    "individual_scores": {
+      "algorithm_discovery": 0.708,
+      "statistical_validation": 1.0,
+      "baseline_comparison": 0.08,
+      "publication_readiness": 0.667
+    },
+    "research_quality": "GOOD",
+    "recommendation": "Framework shows good research potential. Minor enhancements recommended before publication."
+  }
+}

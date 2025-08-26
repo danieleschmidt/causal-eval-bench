@@ -74,7 +74,7 @@ faker = "^37.5.3"
 freezegun = "^1.2.2"
 responses = "^0.25.7"
 httpx = "^0.28.1"
-respx = "^0.20.0"
+respx = "^0.22.0"
 
 [tool.poetry.group.lint.dependencies]
 black = "^25.1.0"

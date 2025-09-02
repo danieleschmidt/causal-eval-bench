@@ -36,7 +36,7 @@ aiofiles = "^24.1.0"
 python-multipart = "^0.0.20"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
-typer = "^0.16.1"
+typer = "^0.17.3"
 rich = "^14.1.0"
 pandas = "^2.1.0"
 numpy = "^2.0.2"

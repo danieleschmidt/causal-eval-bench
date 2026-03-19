@@ -1,613 +1,249 @@
-# causal-eval-bench
+# Causal Eval Bench
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/your-org/causal-eval-bench/ci.yml?branch=main)](https://github.com/your-org/causal-eval-bench/actions)
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Paper](https://img.shields.io/badge/paper-NAACL%202025-red.svg)](https://aclanthology.org/2025.naacl-long.622.pdf)
+**Evaluation framework for testing genuine causal reasoning in LLMs — beyond correlation.**
 
-Comprehensive evaluation framework for testing genuine causal reasoning in language models. Goes beyond correlation to test understanding of cause-and-effect, counterfactuals, and causal interventions.
+[![Tests](https://img.shields.io/badge/tests-55%20passed-brightgreen)](tests/)
+[![Coverage](https://img.shields.io/badge/coverage-86%25-green)](htmlcov/)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://python.org)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-## 🎯 Key Features
+---
 
-- **Causal Reasoning Tests**: Evaluate understanding of causation vs correlation
-- **Counterfactual Generation**: Test ability to reason about alternative scenarios
-- **Intervention Analysis**: Assess understanding of causal interventions
-- **Domain Coverage**: 15+ domains from medicine to economics
-- **Automatic Test Generation**: Create novel causal reasoning problems
-- **Interactive Leaderboard**: Track model performance with live updates
+## Motivation
 
-## 📋 Table of Contents
+Language models can appear to reason causally while merely exploiting statistical patterns.
+A model that has memorized "smoking correlates with cancer" might answer causal questions
+correctly for the wrong reason. Causal Eval Bench tests whether models can distinguish:
 
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Evaluation Tasks](#evaluation-tasks)
-- [Test Generation](#test-generation)
-- [Running Evaluations](#running-evaluations)
-- [Analysis Tools](#analysis-tools)
-- [Leaderboard](#leaderboard)
-- [Custom Domains](#custom-domains)
-- [API Reference](#api-reference)
-- [Contributing](#contributing)
+| Level | Question type | Example |
+|-------|--------------|---------|
+| Rung 1 | **Association** | What is P(Y \| X)? |
+| Rung 2 | **Intervention** | What is P(Y \| **do(X)**=x)? |
+| Rung 3 | **Counterfactual** | What would Y have been if X had been x instead? |
+| +1 | **Attribution** | What caused Y? |
 
-## 🚀 Installation
+These correspond to Pearl's Ladder of Causation (Pearl 2009).
 
-### From PyPI
+---
 
-```bash
-pip install causal-eval-bench
+## Architecture
+
 ```
-
-### From Source
-
-```bash
-git clone https://github.com/your-org/causal-eval-bench
-cd causal-eval-bench
-pip install -e ".[all]"
+causal_eval/benchmark/
+├── scenario.py        # CausalScenario, CausalQuestion, QuestionType, Difficulty
+├── data_generator.py  # DataGenerator, SCMNode — forward/interventional/counterfactual sampling
+├── evaluator.py       # CausalEvaluator — scores model answers, baselines
+├── scenarios.py       # 12 pre-built benchmark scenarios (S01–S12)
+└── suite.py           # BenchmarkSuite — orchestration + leaderboard
 ```
-
-### Docker Installation
-
-```bash
-docker pull your-org/causal-eval:latest
-docker run -it -p 8080:8080 your-org/causal-eval:latest
-```
-
-## ⚡ Quick Start
-
-### Basic Evaluation
-
-```python
-from causal_eval import CausalBenchmark, ModelEvaluator
-
-# Initialize benchmark
-benchmark = CausalBenchmark()
-
-# Evaluate a model
-evaluator = ModelEvaluator(
-    model_name="gpt-4",
-    api_key="your-api-key"
-)
-
-# Run evaluation
-results = benchmark.evaluate(
-    evaluator,
-    tasks=["causal_attribution", "counterfactual", "intervention"],
-    num_examples=100
-)
-
-print(f"Overall Score: {results.overall_score:.2%}")
-print(f"Causal Attribution: {results.causal_attribution:.2%}")
-print(f"Counterfactual Reasoning: {results.counterfactual:.2%}")
-```
-
-### Quick Test
-
-```python
-from causal_eval import quick_test
-
-# Run a quick causal reasoning test
-score = quick_test(
-    model="claude-3",
-    test_type="causal_vs_correlation",
-    n_questions=20
-)
-
-print(f"Model correctly identified causation in {score:.1%} of cases")
-```
-
-## 🧪 Evaluation Tasks
-
-### 1. Causal Attribution
-
-Test ability to identify true causes vs. mere correlations.
-
-```python
-from causal_eval.tasks import CausalAttribution
-
-task = CausalAttribution()
-
-# Example question
-question = task.generate_question()
-print(question.prompt)
-# "Ice cream sales and swimming pool accidents both increase in summer. 
-#  Does eating ice cream cause swimming accidents?"
-
-# Evaluate response
-response = model.generate(question.prompt)
-score = task.evaluate_response(response, question.ground_truth)
-```
-
-### 2. Counterfactual Reasoning
-
-Assess understanding of "what if" scenarios.
-
-```python
-from causal_eval.tasks import CounterfactualReasoning
-
-task = CounterfactualReasoning()
-
-# Generate counterfactual scenario
-scenario = task.create_scenario(
-    context="A student studied hard and passed the exam",
-    intervention="What if the student had not studied?"
-)
-
-# Test model's counterfactual reasoning
-response = model.reason_counterfactual(scenario)
-evaluation = task.evaluate_counterfactual(response)
-
-print(f"Logical consistency: {evaluation.consistency}")
-print(f"Causal understanding: {evaluation.causal_score}")
-```
-
-### 3. Causal Intervention
-
-Test understanding of the effects of interventions.
-
-```python
-from causal_eval.tasks import CausalIntervention
-
-task = CausalIntervention()
-
-# Create intervention scenario
-scenario = {
-    "system": "A thermostat controls room temperature",
-    "intervention": "Manually set thermostat to 30°C",
-    "question": "What happens to room temperature?"
-}
-
-# Evaluate intervention understanding
-response = model.predict_intervention(scenario)
-score = task.evaluate_intervention_prediction(response)
-```
-
-### 4. Causal Chain Reasoning
-
-Evaluate understanding of multi-step causal chains.
-
-```python
-from causal_eval.tasks import CausalChain
-
-task = CausalChain()
-
-# Create causal chain
-chain = task.create_chain(
-    steps=[
-        "Rain falls",
-        "Ground becomes wet",
-        "Plants absorb water",
-        "Plants grow"
-    ]
-)
-
-# Test chain reasoning
-questions = task.generate_chain_questions(chain)
-scores = []
-for q in questions:
-    response = model.answer(q)
-    scores.append(task.evaluate_chain_reasoning(response, q))
-```
-
-### 5. Confounding Variables
-
-Test ability to identify and reason about confounders.
-
-```python
-from causal_eval.tasks import ConfoundingAnalysis
-
-task = ConfoundingAnalysis()
-
-# Present scenario with potential confounder
-scenario = task.create_confounded_scenario(
-    observed="Coffee drinkers have higher productivity",
-    potential_confounder="Sleep quality",
-    domain="workplace"
-)
-
-# Test confounder identification
-response = model.analyze_confounding(scenario)
-evaluation = task.evaluate_confounding_analysis(response)
-```
-
-## 🔧 Test Generation
-
-### Automatic Test Creation
-
-```python
-from causal_eval.generation import CausalTestGenerator
-
-generator = CausalTestGenerator(
-    domains=["medical", "economic", "social"],
-    difficulty="medium",
-    avoid_contamination=True  # Ensure novel questions
-)
-
-# Generate diverse test set
-test_set = generator.generate_test_set(
-    n_questions=500,
-    balance_types=True
-)
-
-# Validate test quality
-validation = generator.validate_test_set(test_set)
-print(f"Question quality: {validation.avg_quality:.2f}/5")
-print(f"Difficulty variance: {validation.difficulty_std:.2f}")
-```
-
-### Domain-Specific Generation
-
-```python
-from causal_eval.generation import DomainSpecificGenerator
-
-# Medical domain tests
-medical_gen = DomainSpecificGenerator(domain="medical")
-medical_tests = medical_gen.generate(
-    n_questions=100,
-    include_real_studies=True,
-    complexity="expert"
-)
-
-# Economic domain tests
-econ_gen = DomainSpecificGenerator(domain="economics")
-econ_tests = econ_gen.generate(
-    focus_areas=["market_dynamics", "policy_effects"],
-    time_period="2020-2024"
-)
-```
-
-### Adversarial Test Generation
-
-```python
-from causal_eval.generation import AdversarialGenerator
-
-# Generate tricky causal questions
-adv_gen = AdversarialGenerator()
-
-adversarial_tests = adv_gen.generate(
-    base_model="gpt-4",
-    exploit_weaknesses=True,
-    categories=[
-        "reverse_causation",
-        "spurious_correlation",
-        "hidden_confounders"
-    ]
-)
-```
-
-## 📊 Running Evaluations
-
-### Comprehensive Evaluation
-
-```python
-from causal_eval import ComprehensiveBenchmark
-
-benchmark = ComprehensiveBenchmark()
-
-# Configure evaluation
-config = {
-    "tasks": "all",  # or specific list
-    "domains": ["medical", "social", "economic", "scientific"],
-    "difficulty_levels": ["easy", "medium", "hard"],
-    "include_adversarial": True,
-    "n_questions_per_category": 50
-}
-
-# Run full evaluation
-results = benchmark.run_evaluation(
-    model=your_model,
-    config=config,
-    save_responses=True
-)
-
-# Generate detailed report
-benchmark.generate_report(
-    results,
-    output_format="pdf",
-    include_error_analysis=True
-)
-```
-
-### Comparative Evaluation
-
-```python
-from causal_eval import ModelComparison
-
-comparison = ModelComparison()
-
-# Compare multiple models
-models = ["gpt-4", "claude-3", "llama-3", "gemini-pro"]
-comparative_results = comparison.compare_models(
-    models=models,
-    benchmark="causal_eval_v1",
-    parallel=True
-)
-
-# Visualize comparison
-comparison.plot_radar_chart(
-    comparative_results,
-    dimensions=["attribution", "counterfactual", "intervention"],
-    save_to="model_comparison.png"
-)
-```
-
-### Longitudinal Evaluation
-
-```python
-from causal_eval import LongitudinalEvaluator
-
-# Track performance over time
-evaluator = LongitudinalEvaluator(
-    model="your-model",
-    checkpoint_frequency="weekly"
-)
-
-# Run periodic evaluations
-evaluator.start_tracking(
-    duration_days=30,
-    test_set="causal_eval_stable_v1"
-)
-
-# Analyze trends
-trends = evaluator.analyze_trends()
-print(f"Performance trend: {trends.direction}")
-print(f"Improvement rate: {trends.improvement_rate:.2%}/week")
-```
-
-## 📈 Analysis Tools
-
-### Error Analysis
-
-```python
-from causal_eval.analysis import ErrorAnalyzer
-
-analyzer = ErrorAnalyzer()
-
-# Analyze failure patterns
-error_analysis = analyzer.analyze_errors(
-    results=evaluation_results,
-    group_by=["task_type", "domain", "difficulty"]
-)
-
-# Most common error types
-for error_type in error_analysis.top_errors(n=5):
-    print(f"{error_type.name}: {error_type.frequency:.1%}")
-    print(f"Example: {error_type.example}")
-```
-
-### Causal Understanding Profile
-
-```python
-from causal_eval.analysis import CausalProfiler
-
-profiler = CausalProfiler()
-
-# Create detailed profile
-profile = profiler.create_profile(
-    model=model,
-    test_results=results
-)
-
-# Visualize strengths and weaknesses
-profiler.plot_capability_matrix(
-    profile,
-    save_to="causal_profile.png"
-)
-
-# Get recommendations
-recommendations = profiler.get_improvement_recommendations(profile)
-```
-
-### Statistical Analysis
-
-```python
-from causal_eval.analysis import StatisticalAnalyzer
-
-stats = StatisticalAnalyzer()
-
-# Perform statistical tests
-significance = stats.test_significance(
-    model_a_results=results_a,
-    model_b_results=results_b,
-    test="mcnemar",
-    correction="bonferroni"
-)
-
-print(f"P-value: {significance.p_value:.4f}")
-print(f"Effect size: {significance.effect_size:.3f}")
-```
-
-## 🏆 Leaderboard
-
-### Submit Results
-
-```python
-from causal_eval.leaderboard import LeaderboardClient
-
-client = LeaderboardClient(api_key="your-api-key")
-
-# Submit evaluation results
-submission = client.submit_results(
-    model_name="YourModel-v1",
-    results=evaluation_results,
-    metadata={
-        "model_size": "7B",
-        "training_data": "custom",
-        "timestamp": "2024-01-15"
-    }
-)
-
-print(f"Submission ID: {submission.id}")
-print(f"Rank: {submission.rank}")
-```
-
-### Generate Leaderboard Badge
-
-```python
-# Generate badge for README
-badge_url = client.get_badge_url(
-    model_name="YourModel-v1",
-    metric="overall_score"
-)
-
-print(f"Add to README: ![CausalEval Score]({badge_url})")
-```
-
-### Access Leaderboard Data
-
-```python
-# Get current leaderboard
-leaderboard = client.get_leaderboard(
-    metric="causal_attribution",
-    top_k=10
-)
-
-for rank, entry in enumerate(leaderboard, 1):
-    print(f"{rank}. {entry.model}: {entry.score:.3f}")
-```
-
-## 🎯 Custom Domains
-
-### Adding New Domains
-
-```python
-from causal_eval.domains import DomainBuilder
-
-# Create custom domain
-climate_domain = DomainBuilder.create_domain(
-    name="climate_science",
-    description="Climate and weather causation",
-    example_phenomena=[
-        "greenhouse_effect",
-        "ocean_currents",
-        "weather_patterns"
-    ]
-)
-
-# Add domain-specific tests
-climate_domain.add_test_template(
-    name="climate_feedback_loops",
-    template="""
-    Given: {climate_condition}
-    Intervention: {human_action}
-    Question: What are the causal effects on {target_variable}?
-    """,
-    ground_truth_generator=climate_causal_model
-)
-
-# Register domain
-benchmark.register_domain(climate_domain)
-```
-
-### Domain-Specific Metrics
-
-```python
-from causal_eval.metrics import DomainMetric
-
-# Create specialized metric
-class MedicalCausalMetric(DomainMetric):
-    def __init__(self):
-        super().__init__(domain="medical")
-    
-    def score(self, response, ground_truth):
-        # Custom scoring for medical causation
-        score = self.base_score(response, ground_truth)
-        
-        # Penalize dangerous causal misunderstandings
-        if self.is_dangerous_inference(response):
-            score *= 0.5
-            
-        return score
-```
-
-## 📚 API Reference
 
 ### Core Classes
 
+#### `CausalScenario`
+A benchmark test case grounded in a Structural Causal Model (SCM):
+- **Causal graph** (DAG edges)
+- **Observational data** sampled from the SCM
+- **Questions** with ground-truth answers across all 4 question types
+
+#### `DataGenerator`
+Implements forward sampling from an SCM using the [Abduction–Action–Prediction] framework:
+- **Observational**: `gen.sample(n=1000)`
+- **Interventional**: `gen.do({"X": 1.0}, n=1000)` — mutilates the DAG
+- **Counterfactual**: `gen.counterfactual(observed={"X":0,"Y":0.3}, interventions={"X":2})` — twin-network
+
+#### `CausalEvaluator`
+Scores a model function on a set of scenarios:
 ```python
-class CausalBenchmark:
-    def evaluate(self, model, tasks, **kwargs) -> EvaluationResults
-    def generate_report(self, results, format) -> None
-    
-class ModelEvaluator:
-    def __init__(self, model_name, **credentials)
-    def evaluate_task(self, task) -> TaskResult
-    
-class CausalTestGenerator:
-    def generate_test_set(self, n_questions, **config) -> TestSet
-    def validate_test_set(self, test_set) -> ValidationReport
+def my_model(question: CausalQuestion) -> float | str:
+    ...  # return predicted answer
+
+result = evaluator.evaluate(scenarios, my_model, model_name="gpt-4")
+print(result.summary())
 ```
 
-### Task Interfaces
+---
 
-```python
-class CausalTask(ABC):
-    @abstractmethod
-    def generate_question(self) -> Question
-    
-    @abstractmethod
-    def evaluate_response(self, response, ground_truth) -> float
+## Benchmark Scenarios
+
+12 scenarios across three difficulty levels:
+
+| ID | Difficulty | Name | Key concept |
+|----|-----------|------|------------|
+| S01 | Simple | Simple Linear Chain X→Y | Direct cause, no confounders |
+| S02 | Simple | Binary Treatment→Outcome | Vaccine effect, necessity/sufficiency |
+| S03 | Simple | Mediation X→M→Y | Full mediation, indirect effect |
+| S04 | Simple | Spurious Correlation Z→X, Z→Y | Common cause, no X→Y edge |
+| S05 | Medium | Classic Confounding | Back-door path, biased estimate |
+| S06 | Medium | Collider Bias X→C←Y | Berkson's paradox, selection bias |
+| S07 | Medium | Non-linear Threshold (Sigmoid) | Non-linear causal reasoning |
+| S08 | Medium | Front-Door Criterion | Unobserved confounder, identification |
+| S09 | Hard | Multi-Path (Direct + Mediated) | NDE vs NIE, path decomposition |
+| S10 | Hard | Instrumental Variable | Unobserved confounder, IV estimation |
+| S11 | Hard | Lagged Effect (Time Series) | Granger causality, temporal reasoning |
+| S12 | Hard | Complex 5-variable DAG | Multi-path + confounder |
+
+### Key Causal Distinctions
+
+```
+S04: E[Y|X=2]  = 1.9  ≠  E[Y|do(X=2)] = 0.0   (spurious correlation)
+S05: E[Y|X=1]  = 1.0  ≠  E[Y|do(X=1)] = 0.4   (confounding bias)
+S08: E[Y|X=1]  biased     E[Y|do(X=1)] = 0.28  (front-door criterion)
+S06: Corr(X,Y) = 0.0   Corr(X,Y|C) < 0         (collider bias)
+S09: Total=0.55, Direct=0.30, Indirect=0.25     (path decomposition)
 ```
 
-### Analysis Tools
+---
+
+## Quick Start
 
 ```python
-class ErrorAnalyzer:
-    def analyze_errors(self, results) -> ErrorAnalysis
-    def get_recommendations(self, analysis) -> List[str]
-    
-class CausalProfiler:
-    def create_profile(self, model, results) -> CausalProfile
-    def plot_capability_matrix(self, profile) -> None
+from causal_eval.benchmark import (
+    BenchmarkSuite,
+    CausalEvaluator,
+    load_all_scenarios,
+)
+
+# Load all 12 scenarios
+scenarios = load_all_scenarios()
+suite = BenchmarkSuite(scenarios)
+suite.print_scenario_summary()
+
+# Define your model
+def my_llm_model(question):
+    # question.text contains the human-readable question
+    # question.question_type is QuestionType.ASSOCIATION/INTERVENTION/COUNTERFACTUAL/ATTRIBUTION
+    # question.metadata contains variable names, intervention values, etc.
+    return your_llm_call(question.text)
+
+# Evaluate
+evaluator = CausalEvaluator()
+result = evaluator.evaluate(scenarios, my_llm_model, model_name="my-llm")
+print(result.summary())
+
+# Compare multiple models
+results = suite.run_all([
+    ("random",  CausalEvaluator.random_baseline),
+    ("oracle",  CausalEvaluator.oracle_baseline),
+    ("my-llm",  my_llm_model),
+])
+suite.print_leaderboard(results)
 ```
 
-## 🤝 Contributing
-
-We welcome contributions! Priority areas:
-- New causal reasoning tasks
-- Domain-specific test sets
-- Multilingual causal evaluation
-- Improved evaluation metrics
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Development Setup
+### Running the Demo
 
 ```bash
-# Clone repository
-git clone https://github.com/your-org/causal-eval-bench
-cd causal-eval-bench
-
-# Install dev dependencies
-pip install -e ".[dev]"
-
-# Run tests
-pytest tests/
-
-# Generate new test cases
-python scripts/generate_tests.py --domain medical --n 100
+python3 demo_benchmark.py
 ```
 
-## 📄 License
+Output (excerpt):
+```
+=================================================================
+  CAUSAL EVAL BENCH — LEADERBOARD
+=================================================================
+Model                 Overall  associat  interven  counterf  attribut
+-----------------------------------------------------------------
+1. oracle             100.0%   100.0%   100.0%   100.0%   100.0%
+2. stubborn-0.5        16.0%    16.7%     0.0%    16.7%    33.3%
+3. random              14.0%     8.3%     0.0%    16.7%    33.3%
+=================================================================
+```
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+---
 
-## 🔗 Related Projects
+## Building Your Own Scenarios
 
-- [CausalML](https://github.com/uber/causalml) - Causal inference in ML
-- [DoWhy](https://github.com/microsoft/dowhy) - Causal reasoning framework
-- [CausalNLP](https://github.com/causal-nlp/causalnlp) - Causality in NLP
-- [CLADDER](https://github.com/causal-ladder/cladder) - Causal reasoning dataset
+```python
+from causal_eval.benchmark.data_generator import DataGenerator, SCMNode
+from causal_eval.benchmark.scenario import CausalScenario, CausalQuestion, QuestionType, Difficulty
+import numpy as np
 
-## 📞 Support
+# Define the SCM
+gen = DataGenerator(seed=42)
+gen.add_node(SCMNode(
+    "X", [],
+    equation=lambda pa, n: n,
+    noise_fn=lambda n: np.random.normal(0, 1, n),
+))
+gen.add_node(SCMNode(
+    "Y", ["X"],
+    equation=lambda pa, n: 0.5 * pa["X"] + n,
+    noise_fn=lambda n: np.random.normal(0, 0.5, n),
+))
 
-- 📧 Email: causal-eval@your-org.com
-- 💬 Discord: [Join our community](https://discord.gg/your-org)
-- 📖 Documentation: [Full docs](https://docs.your-org.com/causal-eval)
-- 🎓 Tutorial: [Causal Reasoning Guide](https://learn.your-org.com/causality)
+# Sample observational data
+data = gen.sample(n=5000)
+arr, cols = gen.to_array(data)
 
-## 📚 References
+# Compute ground truths
+e_y_do_x1 = gen.interventional_mean("Y", {"X": 1.0}, n=50_000)  # = 0.5
 
-- [CausalEval: Better Causal Reasoning](https://aclanthology.org/2025.naacl-long.622.pdf) - Main paper
-- [Unveiling Causal Reasoning in LLMs](https://arxiv.org/html/2506.21215) - Analysis
-- [Causal Representation Learning](https://arxiv.org/abs/2102.11107) - Theory
-- [Benchmarking Causal Understanding](https://arxiv.org/abs/2301.05015) - Related work
+# Build scenario
+scenario = CausalScenario(
+    scenario_id="MY_S01",
+    name="My Custom Scenario",
+    description="...",
+    difficulty=Difficulty.SIMPLE,
+    graph_edges=gen.edges,
+    variable_names=gen.variable_names,
+    data=arr,
+    data_columns=cols,
+    questions=[
+        CausalQuestion(
+            "q1", QuestionType.INTERVENTION,
+            "What is E[Y | do(X=1)]?",
+            answer=0.5,
+        ),
+    ],
+)
+```
+
+---
+
+## Running Tests
+
+```bash
+# All benchmark tests
+python3 -m pytest tests/benchmark/ -v
+
+# Quick run without coverage
+python3 -m pytest tests/benchmark/ -v --no-cov
+```
+
+---
+
+## Installation
+
+```bash
+# Core dependencies only (no FastAPI/DB/Redis required)
+pip install numpy scipy networkx
+
+# Or use the full environment
+pip install -e ".[all]"
+```
+
+---
+
+## Relation to causal-discovery-toolkit
+
+This repo is designed to complement
+[causal-discovery-toolkit](https://github.com/danieleschmidt/causal-discovery-toolkit).
+The toolkit discovers causal structure from data; Causal Eval Bench tests whether
+LLMs can *reason* about that structure.
+
+The `CausalGraph` from the toolkit (Pearl do-calculus, d-separation, Markov blankets)
+can be used directly with the `DataGenerator` in this repo.
+
+---
+
+## References
+
+- Pearl, J. (2009). *Causality: Models, Reasoning, and Inference* (2nd ed.). Cambridge University Press.
+- Pearl, J., Glymour, M., & Jewell, N. P. (2016). *Causal Inference in Statistics: A Primer*. Wiley.
+- Peters, J., Janzing, D., & Schölkopf, B. (2017). *Elements of Causal Inference*. MIT Press.
+- Spirtes, P., Glymour, C., & Scheines, R. (2000). *Causation, Prediction, and Search* (2nd ed.). MIT Press.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).

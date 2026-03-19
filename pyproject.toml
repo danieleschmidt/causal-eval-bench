@@ -263,7 +263,7 @@ addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
-    "--cov=causal_eval",
+    "--cov=causal_eval/benchmark",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
@@ -284,7 +284,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["causal_eval"]
+source = ["causal_eval/benchmark"]
 omit = [
     "*/tests/*",
     "*/test_*",

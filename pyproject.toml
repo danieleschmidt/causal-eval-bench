@@ -79,7 +79,7 @@ respx = "^0.22.0"
 [tool.poetry.group.lint.dependencies]
 black = "^25.1.0"
 isort = "^6.0.1"
-ruff = "^0.12.5"
+ruff = "^0.13.0"
 mypy = "^1.7.0"
 bandit = "^1.7.5"
 safety = "^3.2.13"
